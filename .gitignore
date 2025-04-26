@@ -14,3 +14,4 @@ background.js
 .idea/libraries/build.xml
 .parcel-cache/data.mdb
 .parcel-cache/lock.mdb
+src/config.ts

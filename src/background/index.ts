@@ -1,12 +1,5 @@
-import Browser, { Menus } from 'webextension-polyfill'
-import { getProviderConfigs, ProviderType } from '../config'
-import { OpenAIProvider } from './providers/openai'
-import { Provider } from './types'
-
-const BADGE_COLOR_LOADING = '#FFA500' // Orange
-const BADGE_COLOR_ERROR = '#FF0000' // Red
-const BADGE_TEXT_LOADING = '...'
-const BADGE_TEXT_ERROR = 'ERR'
+import Browser, { Menus, Tabs } from 'webextension-polyfill'
+import { getProvider } from '../config'
 
 // Define the context menu properties
 const contextMenuProperties: Menus.CreateCreatePropertiesType = {
@@ -67,26 +60,29 @@ Text to process:
 
 let previousResult = ''
 
-async function extractDate(info: string) {
-  // Clear any previous badge state immediately
-  Browser.action.setBadgeText({ text: '' })
-
-  // --- Show Spinner ---
-  Browser.action.setBadgeText({ text: BADGE_TEXT_LOADING })
-  Browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR_LOADING })
-
-  const providerConfigs = await getProviderConfigs()
-
-  let provider: Provider
-
-  if (providerConfigs.provider === ProviderType.GPT3) {
-    provider = new OpenAIProvider('', 'gpt-3.5-turbo-instruct')
-  } else {
-    throw new Error(`Unknown provider ${providerConfigs.provider}`)
+async function extractDate(info: string, tabId: number | undefined) {
+  if (!tabId) {
+    console.error('Cannot process request: No valid tab ID provided.')
+    return
   }
 
+  let spinnerShown = false
+
+  try {
+    console.log(`Sending showSpinner to tab ${tabId}`)
+    await Browser.tabs.sendMessage(tabId, { action: 'showSpinner' })
+    spinnerShown = true
+    console.log(`showSpinner message sent successfully to tab ${tabId}`)
+  } catch (error) {
+    console.warn(`Could not send showSpinner message to tab ${tabId}:`, error)
+  }
+
+  const provider = getProvider()
+
+  const fullPrompt = prompt.replace('${text}', info)
+
   await provider.generateAnswer({
-    prompt: prompt + info, // Ensure prompt asks for JSON with keys: title, startDate, endDate, location, description
+    prompt: fullPrompt, // Ensure prompt asks for JSON with keys: title, startDate, endDate, location, description
     onEvent(event) {
       console.log(event)
 
@@ -173,8 +169,13 @@ async function extractDate(info: string) {
         openNewWindow(finalUrl)
         console.log('Generated URL:', finalUrl)
 
-        // Clear badge on successful completion of processing
-        Browser.action.setBadgeText({ text: '' })
+        try {
+          console.log(`Sending hideSpinner to tab ${tabId}`)
+          Browser.tabs.sendMessage(tabId, { action: 'hideSpinner' })
+          console.log(`hideSpinner message sent successfully to tab ${tabId}`)
+        } catch (error) {
+          console.warn(`Could not send showSpinner message to tab ${tabId}:`, error)
+        }
       }
 
       if (event.type === 'answer') {
@@ -187,9 +188,9 @@ async function extractDate(info: string) {
 }
 
 // Add an event listener for when the menu item is clicked
-Browser.contextMenus.onClicked.addListener((info, tab) => {
+Browser.contextMenus.onClicked.addListener((info, tab: Tabs.Tab) => {
   const sText = info.selectionText || ''
-  extractDate(sText)
+  extractDate(sText, tab.id)
 })
 
 // function extractAndParseJSONFromString(inputString: string) {
