@@ -4,3 +4,13 @@ background.js
 .DS_Store
 *.zip
 .env
+.idea/.gitignore
+.idea/chatgpt-google-extension.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/codeStyles/codeStyleConfig.xml
+.idea/codeStyles/Project.xml
+.idea/libraries/build.xml
+.parcel-cache/data.mdb
+.parcel-cache/lock.mdb

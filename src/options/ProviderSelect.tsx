@@ -1,7 +1,6 @@
 import { Button, Input, Select, Spinner, Tabs, useInput, useToasts } from '@geist-ui/core'
 import { FC, useCallback, useState } from 'react'
 import useSWR from 'swr'
-import { fetchExtensionConfigs } from '../api'
 import { getProviderConfigs, ProviderConfigs, ProviderType, saveProviderConfigs } from '../config'
 
 interface ConfigProps {
@@ -10,8 +9,7 @@ interface ConfigProps {
 }
 
 async function loadModels(): Promise<string[]> {
-  const configs = await fetchExtensionConfigs()
-  return configs.openai_model_names
+  return ['gpt-3.5-turbo-instruct', 'babbage-002', 'davinci-002']
 }
 
 const ConfigPanel: FC<ConfigProps> = ({ config, models }) => {
@@ -43,9 +41,9 @@ const ConfigPanel: FC<ConfigProps> = ({ config, models }) => {
   return (
     <div className="flex flex-col gap-3">
       <Tabs value={tab} onChange={(v) => setTab(v as ProviderType)}>
-        <Tabs.Item label="ChatGPT webapp" value={ProviderType.ChatGPT}>
+        {/* <Tabs.Item label="ChatGPT webapp" value={ProviderType.ChatGPT}>
           The API that powers ChatGPT webapp, free, but sometimes unstable
-        </Tabs.Item>
+        </Tabs.Item> */}
         <Tabs.Item label="OpenAI API" value={ProviderType.GPT3}>
           <div className="flex flex-col gap-2">
             <span>

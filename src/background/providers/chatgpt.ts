@@ -59,13 +59,14 @@ export class ChatGPTProvider implements Provider {
   }
 
   private async getModelName(): Promise<string> {
-    try {
-      const models = await this.fetchModels()
-      return models[0].slug
-    } catch (err) {
-      console.error(err)
-      return 'text-davinci-002-render'
-    }
+    return 'gpt-4'
+    // try {
+    //   const models = await this.fetchModels()
+    //   return models[0].slug
+    // } catch (err) {
+    //   console.error(err)
+    //   return 'text-davinci-002-render'
+    // }
   }
 
   async generateAnswer(params: GenerateAnswerParams) {
@@ -92,7 +93,7 @@ export class ChatGPTProvider implements Provider {
         messages: [
           {
             id: uuidv4(),
-            role: 'user',
+            author: { role: 'user' },
             content: {
               content_type: 'text',
               parts: [params.prompt],
