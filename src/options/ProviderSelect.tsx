@@ -1,7 +1,8 @@
 import { Button, Input, Select, Spinner, Tabs, useInput, useToasts } from '@geist-ui/core'
-import { FC, useCallback, useState } from 'react'
+import { FC, useCallback, useState, useEffect } from 'react'
 import useSWR from 'swr'
-import { getProviderConfigs, ProviderConfigs, ProviderType, saveProviderConfigs } from '../config'
+import { getProviderConfigs, ProviderConfigs, ProviderType, saveProviderConfigs, getKeyConfigInfo } from '../config'
+import { isDefaultKey } from '../secure-keys'
 
 interface ConfigProps {
   config: ProviderConfigs
@@ -11,7 +12,7 @@ interface ConfigProps {
 async function loadModels(): Promise<{ gpt3: string[], gemini: string[] }> {
   return {
     gpt3: ['gpt-3.5-turbo-instruct', 'babbage-002', 'davinci-002'],
-    gemini: ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro']
+    gemini: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro']
   }
 }
 
@@ -21,23 +22,73 @@ const ConfigPanel: FC<ConfigProps> = ({ config, models }) => {
   const { bindings: geminiApiKeyBindings } = useInput(config.configs[ProviderType.GEMINI]?.apiKey ?? '')
   const [gpt3Model, setGpt3Model] = useState(config.configs[ProviderType.GPT3]?.model ?? models.gpt3[0])
   const [geminiModel, setGeminiModel] = useState(config.configs[ProviderType.GEMINI]?.model ?? models.gemini[0])
+  const [keyConfigInfo, setKeyConfigInfo] = useState<{
+    isUsingDefault: boolean
+    provider: ProviderType
+    hasUserKey: boolean
+  } | null>(null)
   const { setToast } = useToasts()
 
-  const save = useCallback(async () => {
+  // Load key configuration info
+  useEffect(() => {
+    getKeyConfigInfo().then(setKeyConfigInfo).catch(console.error)
+  }, [tab, gpt3ApiKeyBindings.value, geminiApiKeyBindings.value])
+
+  // Helper function to check if current tab is using default key
+  const isCurrentTabUsingDefault = useCallback(() => {
+    if (!keyConfigInfo) return false
+
     if (tab === ProviderType.GPT3) {
-      if (!gpt3ApiKeyBindings.value) {
-        alert('Please enter your OpenAI API key')
-        return
-      }
+      const userKey = gpt3ApiKeyBindings.value
+      return !userKey || isDefaultKey(userKey)
+    } else if (tab === ProviderType.GEMINI) {
+      const userKey = geminiApiKeyBindings.value
+      return !userKey || isDefaultKey(userKey)
+    }
+
+    return false
+  }, [tab, gpt3ApiKeyBindings.value, geminiApiKeyBindings.value, keyConfigInfo])
+
+  // Warning component for shared keys
+  const SharedKeyWarning = () => {
+    if (!isCurrentTabUsingDefault()) return null
+
+    const isOpenAITab = tab === ProviderType.GPT3
+    const hasWorkingKey = true // Both OpenAI and Gemini now have working default keys
+
+    return (
+      <div style={{
+        backgroundColor: hasWorkingKey ? '#fff3cd' : '#fff3cd',
+        border: `1px solid ${hasWorkingKey ? '#ffeaa7' : '#ffeaa7'}`,
+        borderRadius: '6px',
+        padding: '12px',
+        marginBottom: '16px',
+        fontSize: '14px'
+      }}>
+        <div style={{ fontWeight: 'bold', color: '#856404', marginBottom: '8px' }}>
+          ⚠️ Using Shared API Key
+        </div>
+        <div style={{ color: '#856404', lineHeight: '1.4' }}>
+          You're currently using a shared API key. This may result in:
+          <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+            <li>Rate limiting during high usage periods</li>
+            <li>Slower response times</li>
+            <li>Potential service interruptions</li>
+          </ul>
+          <strong>For best performance, configure your own API key below.</strong>
+        </div>
+      </div>
+    )
+  }
+
+  const save = useCallback(async () => {
+    // Validate model selection (API keys are optional since we have defaults)
+    if (tab === ProviderType.GPT3) {
       if (!gpt3Model || !models.gpt3.includes(gpt3Model)) {
         alert('Please select a valid OpenAI model')
         return
       }
     } else if (tab === ProviderType.GEMINI) {
-      if (!geminiApiKeyBindings.value) {
-        alert('Please enter your Gemini API key')
-        return
-      }
       if (!geminiModel || !models.gemini.includes(geminiModel)) {
         alert('Please select a valid Gemini model')
         return
@@ -59,12 +110,33 @@ const ConfigPanel: FC<ConfigProps> = ({ config, models }) => {
 
   return (
     <div className="flex flex-col gap-3">
+      <div style={{
+        backgroundColor: '#e7f3ff',
+        border: '1px solid #b3d9ff',
+        borderRadius: '6px',
+        padding: '12px',
+        fontSize: '14px',
+        marginBottom: '16px'
+      }}>
+        <div style={{ fontWeight: 'bold', color: '#0066cc', marginBottom: '4px' }}>
+          ℹ️ AI Provider Selection
+        </div>
+        <div style={{ color: '#0066cc', lineHeight: '1.4' }}>
+          You can choose any provider below. The extension will work immediately with default keys,
+          but you can add your own API keys for better performance and no rate limiting.
+        </div>
+      </div>
       <Tabs value={tab} onChange={(v) => setTab(v as ProviderType)}>
-        <Tabs.Item label="OpenAI API" value={ProviderType.GPT3}>
+        <Tabs.Item label="OpenAI API (Works Immediately)" value={ProviderType.GPT3}>
           <div className="flex flex-col gap-2">
+            <SharedKeyWarning />
             <span>
               OpenAI official API, more stable,{' '}
               <span className="font-semibold">charge by usage</span>
+              <br />
+              <em style={{ color: '#28a745', fontSize: '12px' }}>
+                ✓ Works immediately with default key - add your own for better performance
+              </em>
             </span>
             <div className="flex flex-row gap-2">
               <Select
@@ -93,11 +165,16 @@ const ConfigPanel: FC<ConfigProps> = ({ config, models }) => {
             </span>
           </div>
         </Tabs.Item>
-        <Tabs.Item label="Gemini 2.5 Flash" value={ProviderType.GEMINI}>
+        <Tabs.Item label="Gemini 2.5 (Works Immediately)" value={ProviderType.GEMINI}>
           <div className="flex flex-col gap-2">
+            <SharedKeyWarning />
             <span>
               Google's Gemini API, potentially more accurate but possibly slower,{' '}
               <span className="font-semibold">charge by usage</span>
+              <br />
+              <em style={{ color: '#28a745', fontSize: '12px' }}>
+                ✓ Works immediately with default key - add your own for better performance
+              </em>
             </span>
             <div className="flex flex-row gap-2">
               <Select

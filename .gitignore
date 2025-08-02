@@ -15,3 +15,5 @@ background.js
 .parcel-cache/data.mdb
 .parcel-cache/lock.mdb
 src/config.ts
+*.md
+debug-key.js

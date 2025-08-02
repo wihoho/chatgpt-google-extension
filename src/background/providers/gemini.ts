@@ -1,7 +1,7 @@
 import { GenerateAnswerParams, Provider } from '../types'
 
 export class GeminiProvider implements Provider {
-  constructor(private apiKey: string, private model: string = 'gemini-2.0-flash-exp') {
+  constructor(private apiKey: string, private model: string = 'gemini-2.5-flash') {
     this.apiKey = apiKey
     this.model = model
   }

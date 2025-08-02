@@ -639,6 +639,19 @@ if (typeof window !== 'undefined') {
         return { success: false, error: (error as Error).message }
       }
     },
+    checkCurrentProvider: async () => {
+      try {
+        logger.info('content-script', 'Requesting current AI provider information')
+        const response = await Browser.runtime.sendMessage({ action: 'getCurrentProvider' })
+        console.log('🤖 Current AI Provider Configuration:', response)
+        logger.info('content-script', 'Provider info received', response)
+        return response
+      } catch (error) {
+        console.error('❌ Failed to get provider info:', error)
+        logger.error('content-script', 'Failed to get provider info', undefined, error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    },
     getContentScriptInfo: () => {
       const info = {
         url: window.location.href,

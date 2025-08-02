@@ -1,5 +1,5 @@
 import Browser, { Menus, Tabs } from 'webextension-polyfill'
-import { getProvider } from '../config'
+import { getProvider, getProviderConfigs, getKeyConfigInfo, ProviderType } from '../config'
 import { logger, ErrorTracker, setupGlobalErrorHandling } from '../logging'
 import { checkFirstTimeUse } from '../onboarding'
 
@@ -184,9 +184,23 @@ async function extractDate(info: string, tabId: number | undefined) {
     const provider = await getProvider()
     const fullPrompt = promptTemplate.replace('${text}', info)
 
+    // Get provider details for logging
+    const providerName = provider.constructor.name
+    const isGeminiProvider = providerName === 'GeminiProvider'
+    const isOpenAIProvider = providerName === 'OpenAIProvider'
+
+    logger.info('background', 'AI Provider selected and initialized', {
+      providerType: providerName,
+      isGemini: isGeminiProvider,
+      isOpenAI: isOpenAIProvider,
+      selectedText: info.substring(0, 100) + (info.length > 100 ? '...' : ''),
+      promptLength: fullPrompt.length
+    })
+
     logger.debug('background', 'Starting AI processing', {
       promptLength: fullPrompt.length,
-      provider: provider.constructor.name
+      provider: providerName,
+      textToProcess: info
     })
 
     await provider.generateAnswer({
@@ -457,6 +471,37 @@ Browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     } else if (message.action === 'ping') {
       // Respond to ping from content script
       sendResponse({ success: true, message: 'Background script is working' })
+    } else if (message.action === 'getCurrentProvider') {
+      // Debug function to get current provider information
+      try {
+        const configs = await getProviderConfigs()
+        const provider = await getProvider()
+        const providerName = provider.constructor.name
+        const isGemini = providerName === 'GeminiProvider'
+        const isOpenAI = providerName === 'OpenAIProvider'
+
+        // Get key information
+        const keyInfo = await getKeyConfigInfo()
+
+        const response = {
+          success: true,
+          selectedProvider: configs.provider,
+          actualProvider: providerName,
+          isUsingGemini: isGemini,
+          isUsingOpenAI: isOpenAI,
+          keyInfo: keyInfo,
+          configs: {
+            gemini: configs.configs[ProviderType.GEMINI],
+            openai: configs.configs[ProviderType.GPT3]
+          }
+        }
+
+        logger.info('background', 'Provider info requested', response)
+        sendResponse(response)
+      } catch (error) {
+        logger.error('background', 'Error getting provider info', undefined, error as Error)
+        sendResponse({ success: false, error: (error as Error).message })
+      }
     }
   } catch (error) {
     logger.error('background', 'Error handling message', { message }, error as Error)
