@@ -2,7 +2,7 @@
   "name": "ChatGPT for Google Calendar",
   "description": "This is a Chrome extension that simplifies event scheduling using natural language input right from your browser.",
   "default_locale": "en",
-  "version": "0.4",
+  "version": "1.0.0",
   "manifest_version": 3,
   "icons": {
     "16": "logo.png",
@@ -11,24 +11,33 @@
     "128": "logo.png"
   },
   "host_permissions": [
-    "https://*.openai.com/"
+    "https://*.openai.com/",
+    "https://*.googleapis.com/"
   ],
   "permissions": [
     "contextMenus",
-    "activeTab", 
-    "tabs",       
-    "storage",    
-    "scripting",  
-    "windows"    
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "windows",
+    "notifications"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"], // Or more specific URLs like "https://*/*", "http://*/*"
-      "js": ["content-script.js"],      // The compiled content script file
-      "run_at": "document_idle"  // Run after the DOM is mostly ready
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["logo.png"],
+      "matches": ["<all_urls>"]
     }
   ],
   "action": {
@@ -38,5 +47,6 @@
       "48": "logo.png",
       "128": "logo.png"
     }
-  }
+  },
+  "options_page": "options.html"
 }

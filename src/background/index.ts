@@ -1,5 +1,32 @@
 import Browser, { Menus, Tabs } from 'webextension-polyfill'
 import { getProvider } from '../config'
+import { logger, ErrorTracker, setupGlobalErrorHandling } from '../logging'
+import { checkFirstTimeUse } from '../onboarding'
+
+// Setup global error handling for background script
+setupGlobalErrorHandling('background')
+
+// Check for first-time use on startup
+Browser.runtime.onStartup.addListener(async () => {
+  await checkFirstTimeUse()
+})
+
+Browser.runtime.onInstalled.addListener(async (details) => {
+  // Always recreate context menu on install/update
+  await createContextMenu()
+
+  if (details.reason === 'install') {
+    logger.info('background', 'Extension installed for the first time')
+    await checkFirstTimeUse()
+    // Optionally open options page on first install
+    Browser.runtime.openOptionsPage()
+  } else if (details.reason === 'update') {
+    logger.info('background', 'Extension updated', {
+      previousVersion: details.previousVersion,
+      currentVersion: Browser.runtime.getManifest().version
+    })
+  }
+})
 
 // Define the context menu properties
 const contextMenuProperties: Menus.CreateCreatePropertiesType = {
@@ -8,8 +35,37 @@ const contextMenuProperties: Menus.CreateCreatePropertiesType = {
   contexts: ['page', 'selection'], // Contexts where the menu will appear
 }
 
-// Create the context menu item
-Browser.contextMenus.create(contextMenuProperties)
+// Create the context menu item with error handling
+async function createContextMenu() {
+  try {
+    // Remove existing menu item if it exists
+    await Browser.contextMenus.removeAll()
+
+    // Create the new menu item
+    await Browser.contextMenus.create(contextMenuProperties)
+    logger.info('background', 'Context menu created successfully')
+  } catch (error) {
+    logger.error('background', 'Failed to create context menu', undefined, error as Error)
+  }
+}
+
+// Initialize context menu
+createContextMenu()
+
+// Notification helper function
+async function showNotification(title: string, message: string, type: 'basic' | 'progress' = 'basic') {
+  try {
+    await Browser.notifications.create({
+      type: type,
+      iconUrl: 'logo.png',
+      title: title,
+      message: message
+    })
+    logger.debug('background', 'Notification shown', { title, message })
+  } catch (error) {
+    logger.warn('background', 'Failed to show notification', { title, message }, error as Error)
+  }
+}
 
 // Define a function to open a new window
 async function openNewWindow(url: string) {
@@ -26,153 +82,243 @@ async function openNewWindow(url: string) {
   }
 }
 
+// In your JavaScript code, get the current date formatted as YYYY-MM-DD
+const currentDate = new Date().toISOString().split('T')[0]; // e.g., "2024-07-26"
+
+// Enhanced prompt template with better examples and structure
 const promptTemplate = `
-Extract event details (title, start date/time, end date/time, location, description) from the following text.
+Extract event details from the following text and provide the output in a structured JSON format.
 
-**Output Requirements:**
-1.  Format the output STRICTLY as a single JSON object. Do NOT include any other text, greetings, or explanations before or after the JSON object.
-2.  The JSON object MUST contain the keys: "title", "startDate", "endDate", "location", "description".
-3.  If a value for a key cannot be reasonably extracted from the text, use the JSON value \`null\` for that key (e.g., \`"location": null\`). Do not use empty strings "" unless the text explicitly implies an empty value.
-4.  location MUST NOT be a nested JSON object.
+**Context:**
+- Reference Date: ${currentDate} (use this as "today" for interpreting relative dates)
+- Current Year: ${new Date().getFullYear()} (use for dates without specified year)
 
-**Date/Time Formatting Rules (CRITICAL - Follow Format Exactly):**
-*   **For events with a specific time:**
-    *   Use the **exact** format **\`YYYY-MM-DDTHH:mm:ss\`**.
-    *   Include hyphens (-) between date parts and colons (:) between time parts.
-    *   **CRITICAL: Do NOT include 'Z', '+HH:mm', '-HH:mm', or any other timezone suffix.** The output must represent the local time interpretation only. Ignore any timezone information like "UTC", "GMT", or numerical offsets found in the input text when formatting the output string.
-    *   Example: If the text says "2 PM", output the time part as \`T14:00:00\`. If the text says "9 AM UTC" or "9 AM -05:00", still output the time part as \`T09:00:00\`.
-*   **For all-day events** (where only a date is found), use the **exact** format **\`YYYY-MM-DD\`**.
-    *   Example: \`"2024-08-15"\`
-*   **Handling Missing Info:**
-    *   If a start time is found but no end time, calculate the end time by adding exactly 1 hour to the start time. Format both \`startDate\` and \`endDate\` using the strict \`YYYY-MM-DDTHH:mm:ss\` rule above (no suffix).
-    *   If only a start date (all-day) is found but no end date, use the same date for both \`startDate\` and \`endDate\` in \`YYYY-MM-DD\` format.
-    *   If no year is specified in the text, assume the current year.
+**Required Output Format:**
+Return ONLY a JSON object with these exact keys: "title", "startDate", "endDate", "location", "description"
+- Use null for missing values (not empty strings)
+- Do not include any text before or after the JSON object
 
-**Example Output Structures:**
-*   Specific time event (e.g., from "Meeting 3pm"): \`{"title": "Meeting", "startDate": "2024-09-05T15:00:00", "endDate": "2024-09-05T16:00:00", "location": null, "description": null}\`
-*   Specific time event (e.g., from "Webinar 10am UTC"): \`{"title": "Webinar", "startDate": "2024-09-06T10:00:00", "endDate": "2024-09-06T11:00:00", "location": "Online", "description": null}\` (Note: no 'Z' in output)
-*   All-day event: \`{"title": "Public Holiday", "startDate": "2024-12-25", "endDate": "2024-12-25", "location": null, "description": null}\`
-*   If NO details found: Return ONLY an empty JSON object: \`{}\`
+**Date/Time Format Rules:**
+- Specific times: "YYYY-MM-DDTHH:mm:ss" (no timezone suffixes)
+- All-day events: "YYYY-MM-DD"
+- If start time exists but no end time: add 1 hour to start time
+- If only start date exists: use same date for end date
+- For relative dates (tomorrow, next week, etc.): calculate based on reference date
+- For dates without year: use current year or next occurrence if date has passed
 
-Text to process:
-'\${text}'
+**Examples:**
+
+Input: "Team meeting Thursday 3 PM Zoom"
+Output: {"title": "Team meeting", "startDate": "2024-12-05T15:00:00", "endDate": "2024-12-05T16:00:00", "location": "Zoom", "description": null}
+
+Input: "Project deadline: EOD Friday"
+Output: {"title": "Project deadline", "startDate": "2024-12-06T17:00:00", "endDate": "2024-12-06T17:00:00", "location": null, "description": "Project deadline: EOD Friday"}
+
+Input: "Doctor appointment tomorrow at 2:30 PM at Main Street Clinic"
+Output: {"title": "Doctor appointment", "startDate": "2024-12-03T14:30:00", "endDate": "2024-12-03T15:30:00", "location": "Main Street Clinic", "description": null}
+
+Input: "Christmas Day"
+Output: {"title": "Christmas Day", "startDate": "2024-12-25", "endDate": "2024-12-25", "location": null, "description": null}
+
+Input: "Conference call with client about Q4 results on Dec 15 from 10 AM to 11:30 AM"
+Output: {"title": "Conference call with client about Q4 results", "startDate": "2024-12-15T10:00:00", "endDate": "2024-12-15T11:30:00", "location": null, "description": "Conference call with client about Q4 results"}
+
+Input: "random text with no event information"
+Output: {}
+
+**Text to process:**
+\${text}
 `
 
+
 async function extractDate(info: string, tabId: number | undefined) {
+  const startTime = Date.now()
+
   if (!tabId) {
-    console.error('Cannot process request: No valid tab ID provided.')
+    logger.error('background', 'Cannot process request: No valid tab ID provided.')
     return
   }
 
+  logger.info('background', 'Starting event extraction', {
+    textLength: info.length,
+    tabId,
+    selectedText: info.substring(0, 100) + (info.length > 100 ? '...' : '')
+  })
+
   let resultAccumulator = ''
-  let processingError: Error | null = null // Variable to store any error encountered
-  let spinnerShown = false
+  let processingError: Error | null = null
+  let modalShown = false
 
   try {
-    // --- Attempt to Show Spinner ---
+    // Show confirmation modal with loading state
     try {
-      console.log(`[${new Date().toLocaleTimeString()}] Sending showSpinner to tab ${tabId}`)
-      await Browser.tabs.sendMessage(tabId, { action: 'showSpinner' })
-      spinnerShown = true
-      console.log(`[${new Date().toLocaleTimeString()}] showSpinner message sent successfully.`)
+      logger.debug('background', `Sending showModal to tab ${tabId}`)
+
+      // First check if the tab exists and is accessible
+      const tab = await Browser.tabs.get(tabId)
+      if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+        throw new Error(`Cannot inject content script into tab ${tabId}: ${tab?.url || 'unknown URL'}`)
+      }
+
+      await Browser.tabs.sendMessage(tabId, { action: 'showModal' })
+      modalShown = true
+      logger.debug('background', 'showModal message sent successfully')
     } catch (error: any) {
-      // Log, but don't stop. Spinner just won't show.
-      console.warn(
-        `[${new Date().toLocaleTimeString()}] Could not send showSpinner message to tab ${tabId}:`,
-        error.message,
+      logger.error('background', `Could not send showModal message to tab ${tabId}`, {
+        tabId,
+        errorMessage: error.message,
+        errorName: error.name
+      }, error)
+      modalShown = false
+
+      // If we can't show the modal, we should show an error immediately
+      await showNotification(
+        'Extension Error',
+        'Cannot display confirmation modal. Please refresh the page and try again.'
       )
-      spinnerShown = false
+      processingError = new Error('Cannot display confirmation modal. Please try refreshing the page and try again.')
+      return // Exit early since we can't show the modal
     }
 
     // --- Core Processing Logic ---
-    const provider = getProvider() // Can throw error if config is bad
-    const fullPrompt = promptTemplate.replace('${text}', info) // Use template variable
+    const provider = await getProvider()
+    const fullPrompt = promptTemplate.replace('${text}', info)
+
+    logger.debug('background', 'Starting AI processing', {
+      promptLength: fullPrompt.length,
+      provider: provider.constructor.name
+    })
 
     await provider.generateAnswer({
       prompt: fullPrompt,
-      onEvent(event) {
-        console.log('Provider Event:', event) // Log events
+      onEvent: async (event) => {
+        logger.debug('background', 'Provider Event received', { eventType: event.type })
 
         if (event.type === 'answer') {
-          resultAccumulator = event.data.text // Accumulate result
+          resultAccumulator = event.data.text
         } else if (event.type === 'done') {
           // --- Process Result ---
-          console.log('Raw AI Output:', resultAccumulator)
-          const jsonObject = extractAndParseJSONFromString(resultAccumulator)
-          console.log('Parsed JSON Object:', jsonObject)
+          logger.info('background', 'Raw AI Output received', {
+            outputLength: resultAccumulator.length,
+            output: resultAccumulator.substring(0, 200) + (resultAccumulator.length > 200 ? '...' : '')
+          })
 
-          if (
-            !jsonObject ||
-            typeof jsonObject !== 'object' ||
-            Object.keys(jsonObject).length === 0
-          ) {
-            console.error('Failed to parse valid JSON object or received empty object from AI.')
-            // Set error state to be handled in finally
-            processingError = new Error(
-              'Could not understand the response from AI. Please try again or rephrase.',
-            )
-            return // Stop processing event, let finally handle UI
-          }
+          let jsonObject = extractAndParseJSONFromString(resultAccumulator)
+          logger.info('background', 'Parsed JSON Object', { jsonObject })
 
-          const formattedStartDate = formatDateTimeForGoogle(jsonObject.startDate)
-          const formattedEndDate = formatDateTimeForGoogle(jsonObject.endDate)
-
-          let dateParamValue: string | null = null
-          if (!formattedStartDate) {
-            console.error('Could not determine valid start date for the calendar event.')
-            // Set error state
-            processingError = new Error('Failed to extract a valid start date from the text.')
-            return // Stop processing event
-          } else {
-            // Calculate dateParamValue (your existing logic)
-            const startIsAllDay = formattedStartDate.length === 8
-            if (formattedEndDate) {
-              const endIsAllDay = formattedEndDate.length === 8
-              if (startIsAllDay && endIsAllDay)
-                dateParamValue = `${formattedStartDate}/${calculateNextDay(formattedEndDate)}`
-              else if (!startIsAllDay && !endIsAllDay)
-                dateParamValue = `${formattedStartDate}/${formattedEndDate}`
-              else
-                dateParamValue = startIsAllDay
-                  ? `${formattedStartDate}/${calculateNextDay(formattedStartDate)}`
-                  : `${formattedStartDate}/${formattedEndDate}`
-            } else {
-              dateParamValue = startIsAllDay
-                ? `${formattedStartDate}/${calculateNextDay(formattedStartDate)}`
-                : formattedStartDate
+          // Handle cases where AI returns empty or invalid JSON
+          if (!jsonObject || typeof jsonObject !== 'object') {
+            logger.warn('background', 'AI returned invalid JSON, creating empty event template', {
+              rawOutput: resultAccumulator,
+              parsedObject: jsonObject
+            })
+            // Create empty template for user to fill in
+            jsonObject = {
+              title: '',
+              startDate: '',
+              endDate: '',
+              location: '',
+              description: ''
             }
           }
-          // Redundant check, already handled above, but keep for safety
-          if (!dateParamValue) {
-            console.error('Date parameter calculation failed unexpectedly.')
-            processingError = new Error('Failed to format dates for Google Calendar.')
-            return
+
+          // Ensure all required fields exist (even if empty)
+          jsonObject = {
+            title: jsonObject.title || '',
+            startDate: jsonObject.startDate || '',
+            endDate: jsonObject.endDate || '',
+            location: jsonObject.location || '',
+            description: jsonObject.description || '',
+            originalText: info
           }
 
-          const calendarUrl = new URL('https://www.google.com/calendar/event')
-          calendarUrl.searchParams.set('action', 'TEMPLATE')
-          calendarUrl.searchParams.set('text', jsonObject.title || 'Event from Text')
-          calendarUrl.searchParams.set('dates', dateParamValue) // Set calculated value
+          logger.info('background', 'Event data prepared for confirmation', {
+            extractedFields: Object.keys(jsonObject).filter(key => jsonObject[key] && key !== 'originalText'),
+            emptyFields: Object.keys(jsonObject).filter(key => !jsonObject[key] && key !== 'originalText')
+          })
 
-          if (jsonObject.location) calendarUrl.searchParams.set('location', jsonObject.location)
+          // Use the prepared event data (already includes all fields)
+          const eventData = jsonObject
 
-          let detailsText = jsonObject.description || ''
-          if (info && info.trim() !== (jsonObject.description || '').trim()) {
-            detailsText += (detailsText ? '\n\n---\n' : '') + `Original Text:\n${info}`
+          // Send event data to content script for confirmation
+          if (modalShown) {
+            logger.debug('background', 'Sending event confirmation to content script', { tabId, eventData })
+            Browser.tabs.sendMessage(tabId, {
+              action: 'showEventConfirmation',
+              eventData: eventData
+            }).then(() => {
+              logger.info('background', 'Event confirmation sent to content script successfully', {
+                tabId,
+                eventTitle: eventData.title,
+                eventStartDate: eventData.startDate
+              })
+
+              // Track successful extraction
+              const processingTime = Date.now() - startTime
+              ErrorTracker.trackPerformance('background', 'event_extraction', processingTime, {
+                textLength: info.length,
+                hasTitle: !!jsonObject.title,
+                hasStartDate: !!jsonObject.startDate,
+                hasLocation: !!jsonObject.location
+              })
+            }).catch(async (error: any) => {
+              logger.error('background', 'Failed to send event confirmation to content script', {
+                tabId,
+                eventData,
+                errorName: error.name,
+                errorMessage: error.message
+              }, error)
+
+              // Fallback: Open calendar directly
+              logger.info('background', 'Falling back to direct calendar opening')
+              await showNotification(
+                'Event Extracted',
+                `Opening Google Calendar with event: ${eventData.title}`
+              )
+              handleOpenCalendar(eventData)
+            })
+          } else {
+            // Modal couldn't be shown, open calendar directly as fallback
+            logger.info('background', 'Modal not available, opening calendar directly as fallback')
+            await showNotification(
+              'Event Extracted',
+              `Modal unavailable. Opening Google Calendar directly with event: ${eventData.title}`
+            )
+            handleOpenCalendar(eventData)
           }
-          if (detailsText) calendarUrl.searchParams.set('details', detailsText)
-
-          const finalUrl = calendarUrl.toString()
-          console.log('Generated URL:', finalUrl)
-          openNewWindow(finalUrl)
-          // --- SUCCESS --- If we reach here, no error occurred IN THIS BLOCK
-          // The finally block will handle hiding the spinner.
         } else if (event.type === 'error') {
-          console.error('Provider reported an error:', event.data.error)
-          let errMsg = 'An error occurred during processing.'
-          if (event.data.error instanceof Error) errMsg = event.data.error.message
-          else if (typeof event.data.error === 'string') errMsg = event.data.error
-          // Set error state
+          logger.error('background', 'Provider reported an error', { error: event.data.error })
+
+          let errMsg = 'There was a problem communicating with the AI. Please try again later.'
+          const error = event.data.error
+
+          if (error instanceof Error) {
+            // Provide more specific error messages based on error type
+            const errorMessage = error.message.toLowerCase()
+            if (errorMessage.includes('api key') || errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+              errMsg = 'Invalid API key. Please check your API key in the extension settings.'
+            } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+              errMsg = 'Rate limit exceeded. Please wait a moment and try again.'
+            } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('connection')) {
+              errMsg = 'Network error. Please check your internet connection and try again.'
+            } else if (errorMessage.includes('quota') || errorMessage.includes('billing')) {
+              errMsg = 'API quota exceeded or billing issue. Please check your API account.'
+            } else if (errorMessage.includes('model') || errorMessage.includes('not found')) {
+              errMsg = 'The selected AI model is not available. Please try a different model in settings.'
+            } else {
+              errMsg = error.message
+            }
+
+            // Track specific error types
+            ErrorTracker.trackError('background', error, {
+              originalText: info,
+              tabId,
+              errorType: 'provider_error'
+            })
+          } else if (typeof error === 'string') {
+            errMsg = error
+          }
+
           processingError = new Error(errMsg)
         }
       }, // End onEvent
@@ -186,57 +332,35 @@ async function extractDate(info: string, tabId: number | undefined) {
     processingError = error instanceof Error ? error : new Error('An unexpected error occurred.')
   } finally {
     // --- Centralized Cleanup Logic ---
-    if (spinnerShown) {
-      // Only attempt to message tab if spinner was likely shown
+    if (modalShown) {
       if (processingError) {
-        // --- FAILURE PATH: Show Error ---
-        console.error(
-          `[${new Date().toLocaleTimeString()}] Processing finished with error:`,
-          processingError.message,
-        )
+        // --- FAILURE PATH: Show Error in Modal ---
+        logger.error('background', 'Processing finished with error', {
+          error: processingError.message,
+          tabId
+        })
         const errorMessage = processingError.message || 'An unspecified error occurred.'
         try {
-          console.log(
-            `[${new Date().toLocaleTimeString()}] Sending showError message to tab ${tabId}`,
-          )
+          logger.debug('background', `Sending showError message to tab ${tabId}`)
           await Browser.tabs.sendMessage(tabId, {
             action: 'showError',
             message: errorMessage,
           })
-          console.log(`[${new Date().toLocaleTimeString()}] showError message sent successfully.`)
+          logger.debug('background', 'showError message sent successfully')
         } catch (sendError: any) {
-          console.warn(
-            `[${new Date().toLocaleTimeString()}] Could not send showError message to tab ${tabId}:`,
-            sendError.message,
-          )
-        }
-      } else {
-        // --- SUCCESS PATH: Hide Spinner ---
-        console.log(`[${new Date().toLocaleTimeString()}] Processing finished successfully.`)
-        try {
-          console.log(
-            `[${new Date().toLocaleTimeString()}] Sending hideSpinner message to tab ${tabId}`,
-          )
-          await Browser.tabs.sendMessage(tabId, { action: 'hideSpinner' })
-          console.log(`[${new Date().toLocaleTimeString()}] hideSpinner message sent successfully.`)
-        } catch (sendError: any) {
-          console.warn(
-            `[${new Date().toLocaleTimeString()}] Could not send hideSpinner message to tab ${tabId}:`,
-            sendError.message,
-          )
+          logger.warn('background', `Could not send showError message to tab ${tabId}`, { tabId }, sendError)
         }
       }
+      // Note: We don't hide the modal on success because the user needs to confirm the event
     } else {
-      // Log if spinner wasn't shown but an error still occurred
+      // Log if modal wasn't shown but an error still occurred
       if (processingError) {
-        console.error(
-          `[${new Date().toLocaleTimeString()}] Processing finished with error (spinner message failed initially):`,
-          processingError.message,
-        )
+        logger.error('background', 'Processing finished with error (modal message failed initially)', {
+          error: processingError.message,
+          tabId
+        })
       } else {
-        console.log(
-          `[${new Date().toLocaleTimeString()}] Processing finished (spinner message failed initially).`,
-        )
+        logger.info('background', 'Processing finished (modal message failed initially)', { tabId })
       }
     }
   } // End finally
@@ -247,11 +371,169 @@ async function extractDate(info: string, tabId: number | undefined) {
 // calculateNextDay, extractAndParseJSONFromString, onStartup, onInstalled)
 // Remember to define promptTemplate correctly!
 
+// Function to ensure content script is injected
+async function ensureContentScriptInjected(tabId: number): Promise<boolean> {
+  try {
+    // First try to ping the existing content script
+    await Browser.tabs.sendMessage(tabId, { action: 'ping' })
+    logger.debug('background', 'Content script already available', { tabId })
+    return true
+  } catch (error) {
+    // Content script not available, try to inject it
+    logger.info('background', 'Content script not available, attempting injection', { tabId })
+
+    try {
+      // Get tab info to check if injection is allowed
+      const tab = await Browser.tabs.get(tabId)
+      if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('moz-extension://')) {
+        logger.warn('background', 'Cannot inject content script into restricted URL', { tabId, url: tab.url })
+        return false
+      }
+
+      // Inject the content script
+      await Browser.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content-script.js']
+      })
+
+      // Wait a bit for the script to initialize
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Test if injection worked
+      await Browser.tabs.sendMessage(tabId, { action: 'ping' })
+      logger.info('background', 'Content script injected successfully', { tabId })
+      return true
+    } catch (injectionError) {
+      logger.error('background', 'Failed to inject content script', { tabId }, injectionError as Error)
+      return false
+    }
+  }
+}
+
 // Add an event listener for when the menu item is clicked
-Browser.contextMenus.onClicked.addListener((info, tab: Tabs.Tab) => {
+Browser.contextMenus.onClicked.addListener(async (info, tab: Tabs.Tab) => {
   const sText = info.selectionText || ''
+
+  if (!tab.id) {
+    logger.error('background', 'No tab ID available for context menu click')
+    await showNotification('Error', 'Cannot process request: No valid tab ID')
+    return
+  }
+
+  // Ensure content script is available before processing
+  const contentScriptAvailable = await ensureContentScriptInjected(tab.id)
+  if (!contentScriptAvailable) {
+    logger.error('background', 'Content script not available and injection failed', { tabId: tab.id })
+    await showNotification(
+      'Extension Error',
+      'Cannot inject content script. Please refresh the page and try again.'
+    )
+    return
+  }
+
   extractDate(sText, tab.id)
 })
+
+// Add message listener for calendar opening and debugging
+Browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  try {
+    logger.debug('background', 'Received message', { action: message.action, sender: sender.tab?.id })
+
+    if (message.action === 'openCalendar') {
+      await handleOpenCalendar(message.eventData)
+    } else if (message.action === 'testContentScript') {
+      // Debug function to test content script injection
+      const tabs = await Browser.tabs.query({ active: true, currentWindow: true })
+      if (tabs[0]?.id) {
+        try {
+          await Browser.tabs.sendMessage(tabs[0].id, { action: 'ping' })
+          await showNotification('Debug', 'Content script is responding')
+          sendResponse({ success: true, message: 'Content script is working' })
+        } catch (error) {
+          await showNotification('Debug', 'Content script is not responding')
+          sendResponse({ success: false, message: 'Content script not responding', error: (error as Error).message })
+        }
+      }
+    } else if (message.action === 'ping') {
+      // Respond to ping from content script
+      sendResponse({ success: true, message: 'Background script is working' })
+    }
+  } catch (error) {
+    logger.error('background', 'Error handling message', { message }, error as Error)
+    sendResponse({ success: false, error: (error as Error).message })
+  }
+
+  return true // Keep message channel open for async response
+})
+
+async function handleOpenCalendar(eventData: any) {
+  try {
+    logger.info('background', 'Opening calendar with event data', { eventData })
+
+    // Validate required fields
+    if (!eventData.title || !eventData.title.trim()) {
+      await showNotification('Error', 'Event title is required')
+      return
+    }
+
+    if (!eventData.startDate) {
+      await showNotification('Error', 'Start date is required')
+      return
+    }
+
+    const formattedStartDate = formatDateTimeForGoogle(eventData.startDate, false) // Don't auto-adjust years from user input
+    const formattedEndDate = eventData.endDate ? formatDateTimeForGoogle(eventData.endDate, false) : null
+
+    let dateParamValue: string | null = null
+    if (!formattedStartDate) {
+      logger.error('background', 'Could not format start date for calendar', { startDate: eventData.startDate })
+      await showNotification('Error', 'Invalid start date format')
+      return
+    }
+
+    // Calculate dateParamValue using existing logic
+    const startIsAllDay = formattedStartDate.length === 8
+    if (formattedEndDate) {
+      const endIsAllDay = formattedEndDate.length === 8
+      if (startIsAllDay && endIsAllDay)
+        dateParamValue = `${formattedStartDate}/${calculateNextDay(formattedEndDate)}`
+      else if (!startIsAllDay && !endIsAllDay)
+        dateParamValue = `${formattedStartDate}/${formattedEndDate}`
+      else
+        dateParamValue = startIsAllDay
+          ? `${formattedStartDate}/${calculateNextDay(formattedStartDate)}`
+          : `${formattedStartDate}/${formattedEndDate}`
+    } else {
+      dateParamValue = startIsAllDay
+        ? `${formattedStartDate}/${calculateNextDay(formattedStartDate)}`
+        : formattedStartDate
+    }
+
+    if (!dateParamValue) {
+      console.error('Date parameter calculation failed.')
+      return
+    }
+
+    const calendarUrl = new URL('https://www.google.com/calendar/event')
+    calendarUrl.searchParams.set('action', 'TEMPLATE')
+    calendarUrl.searchParams.set('text', eventData.title || 'Event from Text')
+    calendarUrl.searchParams.set('dates', dateParamValue)
+
+    if (eventData.location) calendarUrl.searchParams.set('location', eventData.location)
+
+    let detailsText = eventData.description || ''
+    if (eventData.originalText && eventData.originalText.trim() !== (eventData.description || '').trim()) {
+      detailsText += (detailsText ? '\n\n---\n' : '') + `Original Text:\n${eventData.originalText}`
+    }
+    if (detailsText) calendarUrl.searchParams.set('details', detailsText)
+
+    const finalUrl = calendarUrl.toString()
+    console.log('Generated Calendar URL:', finalUrl)
+    await openNewWindow(finalUrl)
+  } catch (error) {
+    console.error('Error opening calendar:', error)
+  }
+}
 
 // function extractAndParseJSONFromString(inputString: string) {
 //   const jsonRegex = /{[^}]*}/
@@ -308,17 +590,18 @@ function formatDateTimeForGoogle(dateTimeString, adjustPastYears = true) {
     const currentYear = new Date().getFullYear()
     const inputYear = date.getFullYear()
 
-    // Adjust year if it's in the past (heuristic)
-    if (adjustPastYears && inputYear < currentYear) {
-      // This assumes a past year from the AI means the user likely didn't specify
-      // a year and intended the current/upcoming instance of that date.
-      console.warn(
-        `Adjusting past year (${inputYear}) to current year (${currentYear}) for date: ${dateTimeString}`,
-      )
+    // Only adjust year if it's significantly in the past (more than 1 year)
+    // This prevents adjusting dates that are intentionally set to previous year
+    if (adjustPastYears && inputYear < currentYear - 1) {
+      logger.warn('background', `Adjusting old year (${inputYear}) to current year (${currentYear})`, {
+        originalDate: dateTimeString,
+        inputYear,
+        currentYear
+      })
       date.setFullYear(currentYear)
-      // Re-check validity after potential year change (though unlikely to fail here)
+      // Re-check validity after potential year change
       if (isNaN(date.getTime())) {
-        console.error('Date became invalid after year adjustment.')
+        logger.error('background', 'Date became invalid after year adjustment')
         return null
       }
     }

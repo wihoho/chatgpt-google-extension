@@ -1,9 +1,11 @@
-import { CssBaseline, GeistProvider, Text, useToasts } from '@geist-ui/core'
+import { CssBaseline, GeistProvider, Tabs, Text, useToasts } from '@geist-ui/core'
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks'
 import '../base.css'
 import { getUserConfig, Language, Theme, TriggerMode, updateUserConfig } from '../config'
 import logo from '../logo.png'
 import { detectSystemColorScheme, getExtensionVersion } from '../utils'
+import DebugPanel from './DebugPanel'
+import OnboardingPanel from './OnboardingPanel'
 import ProviderSelect from './ProviderSelect'
 
 function OptionsPage(props: { theme: Theme; onThemeChange: (theme: Theme) => void }) {
@@ -52,11 +54,27 @@ function OptionsPage(props: { theme: Theme; onThemeChange: (theme: Theme) => voi
           <span className="font-semibold">ChatGPT for Google (v{getExtensionVersion()})</span>
         </div>
       </nav>
-      <main className="w-[500px] mx-auto mt-14">
-        <Text h3 className="mt-5 mb-0">
-          AI Provider
-        </Text>
-        <ProviderSelect />
+      <main className="w-[800px] mx-auto mt-14">
+        <Tabs initialValue="getting-started">
+          <Tabs.Item label="Getting Started" value="getting-started">
+            <div className="mt-5">
+              <OnboardingPanel />
+            </div>
+          </Tabs.Item>
+          <Tabs.Item label="AI Provider" value="provider">
+            <div className="mt-5">
+              <Text h3 className="mt-5 mb-0">
+                AI Provider Configuration
+              </Text>
+              <ProviderSelect />
+            </div>
+          </Tabs.Item>
+          <Tabs.Item label="Debug Logs" value="debug">
+            <div className="mt-5">
+              <DebugPanel />
+            </div>
+          </Tabs.Item>
+        </Tabs>
       </main>
     </div>
   )
