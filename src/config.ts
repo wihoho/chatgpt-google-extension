@@ -81,7 +81,7 @@ export interface ProviderConfigs {
 }
 
 export async function getProviderConfigs(): Promise<ProviderConfigs> {
-  const { provider = ProviderType.GEMINI } = await Browser.storage.local.get('provider')
+  const { provider = ProviderType.GPT3 } = await Browser.storage.local.get('provider')
   const gpt3ConfigKey = `provider:${ProviderType.GPT3}`
   const geminiConfigKey = `provider:${ProviderType.GEMINI}`
   const result = await Browser.storage.local.get([gpt3ConfigKey, geminiConfigKey])
