@@ -3,6 +3,28 @@ import { getProvider, getProviderConfigs, getKeyConfigInfo, ProviderType } from 
 import { logger, ErrorTracker, setupGlobalErrorHandling } from '../logging'
 import { checkFirstTimeUse } from '../onboarding'
 
+// AI extraction timeout configuration
+const AI_EXTRACTION_TIMEOUT_MS = 5000 // 5 seconds (less than 6 second requirement)
+
+// Timeout wrapper for AI provider calls
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage))
+    }, timeoutMs)
+
+    promise
+      .then((result) => {
+        clearTimeout(timeoutId)
+        resolve(result)
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId)
+        reject(error)
+      })
+  })
+}
+
 // Setup global error handling for background script
 setupGlobalErrorHandling('background')
 
@@ -184,6 +206,9 @@ async function extractDate(info: string, tabId: number | undefined) {
     const provider = await getProvider()
     const fullPrompt = promptTemplate.replace('${text}', info)
 
+    // Create AbortController for timeout handling
+    const abortController = new AbortController()
+
     // Get provider details for logging
     const providerName = provider.constructor.name
     const isGeminiProvider = providerName === 'GeminiProvider'
@@ -203,9 +228,12 @@ async function extractDate(info: string, tabId: number | undefined) {
       textToProcess: info
     })
 
-    await provider.generateAnswer({
-      prompt: fullPrompt,
-      onEvent: async (event) => {
+    // Wrap AI provider call with timeout
+    await withTimeout(
+      provider.generateAnswer({
+        prompt: fullPrompt,
+        signal: abortController.signal,
+        onEvent: async (event) => {
         logger.debug('background', 'Provider Event received', { eventType: event.type })
 
         if (event.type === 'answer') {
@@ -250,6 +278,41 @@ async function extractDate(info: string, tabId: number | undefined) {
             extractedFields: Object.keys(jsonObject).filter(key => jsonObject[key] && key !== 'originalText'),
             emptyFields: Object.keys(jsonObject).filter(key => !jsonObject[key] && key !== 'originalText')
           })
+
+          // Check if AI extraction completely failed (no meaningful data extracted)
+          const hasTitle = !!(jsonObject.title && jsonObject.title.trim())
+          const hasStartDate = !!(jsonObject.startDate && jsonObject.startDate.trim())
+          const hasEndDate = !!(jsonObject.endDate && jsonObject.endDate.trim())
+          const hasLocation = !!(jsonObject.location && jsonObject.location.trim())
+          const hasDescription = !!(jsonObject.description && jsonObject.description.trim())
+
+          const extractionFailed = !hasTitle && !hasStartDate && !hasEndDate && !hasLocation && !hasDescription
+
+          if (extractionFailed) {
+            logger.warn('background', 'AI extraction completely failed - no valid event data found', {
+              originalText: info,
+              extractedData: jsonObject
+            })
+
+            // Send error message to content script instead of confirmation
+            if (modalShown) {
+              Browser.tabs.sendMessage(tabId, {
+                action: 'showExtractionError',
+                originalText: info
+              }).then(() => {
+                logger.info('background', 'Extraction error sent to content script', { tabId })
+              }).catch(async (error: any) => {
+                logger.error('background', 'Failed to send extraction error to content script', {
+                  tabId,
+                  error: error.message
+                }, error)
+
+                // Fallback: show notification
+                await showNotification('Extraction Failed', 'Could not extract event information from selected text. Try selecting more descriptive text.')
+              })
+            }
+            return
+          }
 
           // Use the prepared event data (already includes all fields)
           const eventData = jsonObject
@@ -336,13 +399,53 @@ async function extractDate(info: string, tabId: number | undefined) {
           processingError = new Error(errMsg)
         }
       }, // End onEvent
-    }) // End generateAnswer call
+    }), // End generateAnswer call
+    AI_EXTRACTION_TIMEOUT_MS,
+    `AI extraction timed out after ${AI_EXTRACTION_TIMEOUT_MS / 1000} seconds`
+  ) // End withTimeout wrapper
   } catch (error: any) {
-    // Catch errors from getProvider or synchronous parts before/after generateAnswer
+    // Catch errors from getProvider, timeout, or synchronous parts before/after generateAnswer
     console.error(
       `[${new Date().toLocaleTimeString()}] Error during processing setup or unexpected failure:`,
       error,
     )
+
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.'
+
+    // Check if this is a timeout error
+    if (errorMessage.includes('timed out')) {
+      logger.warn('background', 'AI extraction timed out', {
+        timeoutMs: AI_EXTRACTION_TIMEOUT_MS,
+        textLength: info.length,
+        tabId
+      })
+
+      // For timeout errors, show the enhanced error modal instead of regular error
+      if (modalShown) {
+        try {
+          await Browser.tabs.sendMessage(tabId, {
+            action: 'showExtractionError',
+            originalText: info,
+            errorType: 'timeout'
+          })
+          logger.info('background', 'Timeout error sent to content script for enhanced error modal', { tabId })
+          return // Exit early to avoid showing regular error modal
+        } catch (sendError: any) {
+          logger.error('background', 'Failed to send timeout error to content script', {
+            tabId,
+            error: sendError.message
+          }, sendError)
+
+          // Fallback: show notification
+          await showNotification(
+            'Extraction Timeout',
+            'The AI service took too long to respond. Please try selecting more specific text with clear dates and times.'
+          )
+          return
+        }
+      }
+    }
+
     processingError = error instanceof Error ? error : new Error('An unexpected error occurred.')
   } finally {
     // --- Centralized Cleanup Logic ---

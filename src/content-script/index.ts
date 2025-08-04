@@ -16,8 +16,445 @@ if (typeof window !== 'undefined') {
 const CONFIRMATION_MODAL_ID = 'extension-confirmation-modal'
 const MODAL_OVERLAY_ID = 'extension-modal-overlay'
 const LOADING_INDICATOR_ID = 'extension-loading-indicator'
+const ERROR_MODAL_ID = 'extension-error-modal'
+
+// Review prompt constants
+const REVIEW_PROMPT_INTERVAL = 3
+const CHROME_WEB_STORE_REVIEW_URL = 'https://chromewebstore.google.com/detail/chatgpt-for-google-calend/laejdmahdkleahgkdpiapfdcmleedhca?hl=en'
 
 let currentEventData: any = null
+
+// Event tracking and review prompt functions
+async function incrementSuccessfulEvents(): Promise<number> {
+  try {
+    const result = await Browser.storage.local.get(['successfulEvents'])
+    const count = (result.successfulEvents || 0) + 1
+    await Browser.storage.local.set({ successfulEvents: count })
+    logger.info('content-script', 'Incremented successful events count', { count })
+    return count
+  } catch (error) {
+    logger.error('content-script', 'Failed to increment successful events', undefined, error as Error)
+    return 0
+  }
+}
+
+async function shouldShowReviewPrompt(): Promise<boolean> {
+  try {
+    const result = await Browser.storage.local.get(['successfulEvents', 'reviewPromptDismissed'])
+    const count = result.successfulEvents || 0
+    const dismissed = result.reviewPromptDismissed || false
+
+    // Show prompt if user has created exactly a multiple of 5 events and hasn't permanently dismissed
+    const shouldShow = !dismissed && count > 0 && count % REVIEW_PROMPT_INTERVAL === 0
+    logger.debug('content-script', 'Review prompt check', { count, dismissed, shouldShow })
+    return shouldShow
+  } catch (error) {
+    logger.error('content-script', 'Failed to check review prompt status', undefined, error as Error)
+    return false
+  }
+}
+
+async function markReviewPromptDismissed(): Promise<void> {
+  try {
+    await Browser.storage.local.set({ reviewPromptDismissed: true })
+    logger.info('content-script', 'Review prompt permanently dismissed')
+  } catch (error) {
+    logger.error('content-script', 'Failed to mark review prompt as dismissed', undefined, error as Error)
+  }
+}
+
+function createReviewPrompt(): HTMLElement {
+  const reviewPrompt = document.createElement('div')
+  reviewPrompt.style.cssText = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+    margin: 16px 0 !important;
+    color: white !important;
+    font-family: inherit !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+  `
+
+  reviewPrompt.innerHTML = `
+    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+      <span style="font-size: 20px; margin-right: 8px;">⭐</span>
+      <span style="font-weight: 600; font-size: 16px;">Enjoying the extension?</span>
+    </div>
+    <div style="margin-bottom: 16px; font-size: 14px; line-height: 1.4; opacity: 0.95;">
+      Help others discover this extension by leaving a review on the Chrome Web Store!
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button id="review-now-btn" style="
+        background: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+      ">⭐ Review Now</button>
+      <button id="maybe-later-btn" style="
+        background: transparent !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+      ">Maybe Later</button>
+    </div>
+  `
+
+  // Add hover effects
+  const reviewNowBtn = reviewPrompt.querySelector('#review-now-btn') as HTMLElement
+  const maybeLaterBtn = reviewPrompt.querySelector('#maybe-later-btn') as HTMLElement
+
+  if (reviewNowBtn) {
+    reviewNowBtn.addEventListener('mouseenter', () => {
+      reviewNowBtn.style.background = 'rgba(255, 255, 255, 0.3) !important'
+      reviewNowBtn.style.transform = 'translateY(-1px)'
+    })
+    reviewNowBtn.addEventListener('mouseleave', () => {
+      reviewNowBtn.style.background = 'rgba(255, 255, 255, 0.2) !important'
+      reviewNowBtn.style.transform = 'translateY(0)'
+    })
+    reviewNowBtn.addEventListener('click', async () => {
+      logger.info('content-script', 'User clicked Review Now')
+      await markReviewPromptDismissed()
+      window.open(CHROME_WEB_STORE_REVIEW_URL, '_blank')
+    })
+  }
+
+  if (maybeLaterBtn) {
+    maybeLaterBtn.addEventListener('mouseenter', () => {
+      maybeLaterBtn.style.background = 'rgba(255, 255, 255, 0.1) !important'
+      maybeLaterBtn.style.color = 'white !important'
+    })
+    maybeLaterBtn.addEventListener('mouseleave', () => {
+      maybeLaterBtn.style.background = 'transparent !important'
+      maybeLaterBtn.style.color = 'rgba(255, 255, 255, 0.8) !important'
+    })
+    maybeLaterBtn.addEventListener('click', () => {
+      logger.info('content-script', 'User clicked Maybe Later')
+    })
+  }
+
+  return reviewPrompt
+}
+
+// Error dialog for failed AI detection
+function createErrorModal(errorType?: string): HTMLElement | null {
+  try {
+    logger.debug('content-script', 'Creating error modal for failed AI detection', { errorType })
+
+    // Check if document is ready
+    if (!document.body) {
+      logger.error('content-script', 'Document body not available for error modal creation')
+      return null
+    }
+
+    // Create modal overlay with error styling
+    const overlay = document.createElement('div')
+    overlay.id = MODAL_OVERLAY_ID
+    overlay.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.7) !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      transition: opacity 0.3s ease-in-out !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      box-sizing: border-box !important;
+    `
+
+    // Create error modal container with distinct error styling
+    const modal = document.createElement('div')
+    modal.id = ERROR_MODAL_ID
+    modal.style.cssText = `
+      background-color: #ffffff !important;
+      border-radius: 12px !important;
+      padding: 24px !important;
+      max-width: 500px !important;
+      width: 90% !important;
+      max-height: 80vh !important;
+      overflow: auto !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+      transform: scale(0.95) !important;
+      transition: transform 0.3s ease-in-out !important;
+      position: relative !important;
+      box-sizing: border-box !important;
+      font-family: inherit !important;
+      color: #000000 !important;
+      border-left: 4px solid #ef4444 !important;
+    `
+
+    // Error content
+    const errorContent = document.createElement('div')
+
+    // Error icon and title
+    const titleContainer = document.createElement('div')
+    titleContainer.style.cssText = `
+      display: flex !important;
+      align-items: center !important;
+      margin-bottom: 16px !important;
+    `
+
+    const errorIcon = document.createElement('span')
+    errorIcon.textContent = '⚠️'
+    errorIcon.style.cssText = `
+      font-size: 24px !important;
+      margin-right: 12px !important;
+    `
+
+    const title = document.createElement('h2')
+
+    // Customize title and message based on error type
+    if (errorType === 'timeout') {
+      errorIcon.textContent = '⏱️'
+      title.textContent = 'Extraction Timed Out'
+    } else {
+      errorIcon.textContent = '⚠️'
+      title.textContent = 'No Event Information Found'
+    }
+
+    title.style.cssText = `
+      margin: 0 !important;
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      color: #dc2626 !important;
+      font-family: inherit !important;
+    `
+
+    titleContainer.appendChild(errorIcon)
+    titleContainer.appendChild(title)
+    errorContent.appendChild(titleContainer)
+
+    // Error message
+    const message = document.createElement('div')
+    message.style.cssText = `
+      margin-bottom: 20px !important;
+      line-height: 1.5 !important;
+      color: #374151 !important;
+      font-size: 14px !important;
+    `
+
+    if (errorType === 'timeout') {
+      message.innerHTML = `
+        <p style="margin: 0 0 12px 0;">The AI service took too long to respond (more than 5 seconds).</p>
+        <p style="margin: 0 0 16px 0;"><strong>This usually happens when:</strong></p>
+        <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+          <li>The selected text is very long or complex</li>
+          <li>The AI service is experiencing high load</li>
+          <li>Network connectivity is slow</li>
+        </ul>
+        <p style="margin: 0 0 16px 0;"><strong>To improve success, try selecting shorter, more specific text that includes:</strong></p>
+        <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+          <li>Clear dates and times (e.g., "March 15 at 3 PM")</li>
+          <li>Concise event descriptions</li>
+          <li>Essential details only</li>
+        </ul>
+        <p style="margin: 0; font-style: italic; color: #6b7280;">Example: "Team meeting tomorrow at 2 PM in Conference Room A"</p>
+      `
+    } else {
+      message.innerHTML = `
+        <p style="margin: 0 0 12px 0;">We couldn't extract any event information from the selected text.</p>
+        <p style="margin: 0 0 16px 0;"><strong>To get better results, try selecting text that includes:</strong></p>
+        <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+          <li>Specific dates (e.g., "March 15" or "next Tuesday")</li>
+          <li>Times (e.g., "3:00 PM" or "at 2pm")</li>
+          <li>Event descriptions (e.g., "meeting", "appointment", "call")</li>
+          <li>Location information when available</li>
+        </ul>
+        <p style="margin: 0; font-style: italic; color: #6b7280;">Example: "Team meeting tomorrow at 2 PM in Conference Room A"</p>
+      `
+    }
+    errorContent.appendChild(message)
+
+    // Buttons
+    const buttonContainer = document.createElement('div')
+    buttonContainer.style.cssText = `
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 12px !important;
+      margin-top: 24px !important;
+    `
+
+    const cancelButton = document.createElement('button')
+    cancelButton.textContent = 'Cancel'
+    cancelButton.style.cssText = `
+      background: #f3f4f6 !important;
+      color: #374151 !important;
+      border: 1px solid #d1d5db !important;
+      padding: 10px 20px !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      transition: all 0.2s ease !important;
+    `
+    cancelButton.onclick = hideErrorModal
+
+    const retryButton = document.createElement('button')
+    retryButton.textContent = 'Try Again'
+    retryButton.style.cssText = `
+      background: #3b82f6 !important;
+      color: white !important;
+      border: 1px solid #3b82f6 !important;
+      padding: 10px 20px !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      transition: all 0.2s ease !important;
+    `
+    retryButton.onclick = hideErrorModal
+
+    // Add hover effects
+    cancelButton.addEventListener('mouseenter', () => {
+      cancelButton.style.background = '#e5e7eb !important'
+    })
+    cancelButton.addEventListener('mouseleave', () => {
+      cancelButton.style.background = '#f3f4f6 !important'
+    })
+
+    retryButton.addEventListener('mouseenter', () => {
+      retryButton.style.background = '#2563eb !important'
+    })
+    retryButton.addEventListener('mouseleave', () => {
+      retryButton.style.background = '#3b82f6 !important'
+    })
+
+    buttonContainer.appendChild(cancelButton)
+    buttonContainer.appendChild(retryButton)
+    errorContent.appendChild(buttonContainer)
+
+    modal.appendChild(errorContent)
+    overlay.appendChild(modal)
+
+    // Add CSS for visibility toggle
+    overlay.classList.add('visible')
+    const style = document.createElement('style')
+    style.textContent = `
+      .visible { opacity: 1 !important; }
+      .visible > div { transform: scale(1) !important; }
+    `
+    document.head.appendChild(style)
+
+    return overlay
+  } catch (error) {
+    logger.error('content-script', 'Error creating error modal', undefined, error as Error)
+    return null
+  }
+}
+
+function hideErrorModal() {
+  logger.debug('content-script', 'Hiding error modal')
+  const overlay = document.getElementById(MODAL_OVERLAY_ID)
+  if (overlay) {
+    overlay.classList.remove('visible')
+    setTimeout(() => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay)
+      }
+    }, 300)
+  }
+
+  // Restore page scrolling
+  try {
+    document.body.style.overflow = ''
+  } catch (e) {
+    logger.warn('content-script', 'Could not restore body overflow style', undefined, e as Error)
+  }
+
+  logger.info('content-script', 'Error modal hidden')
+}
+
+function showErrorModal(errorType?: string) {
+  logger.debug('content-script', 'showErrorModal function entered', { errorType })
+
+  // Check if document is ready and body exists
+  if (!document.body) {
+    logger.error('content-script', 'Document body not available for error modal display')
+    return
+  }
+
+  // Remove any existing modal overlay first and reset body styles
+  const existingOverlay = document.getElementById(MODAL_OVERLAY_ID)
+  if (existingOverlay) {
+    logger.debug('content-script', 'Removing existing modal overlay', {
+      existingOverlayId: existingOverlay.id,
+      existingOverlayClass: existingOverlay.className
+    })
+    existingOverlay.remove()
+
+    // Reset body overflow in case it was set by previous modal
+    try {
+      document.body.style.overflow = ''
+    } catch (e) {
+      logger.warn('content-script', 'Could not reset body overflow style', undefined, e as Error)
+    }
+  }
+
+  // Create new error modal
+  logger.debug('content-script', 'Creating new error modal')
+  const overlay = createErrorModal(errorType)
+  if (!overlay) {
+    logger.error('content-script', 'Failed to create error modal, aborting showErrorModal')
+    return
+  }
+
+  try {
+    document.body.appendChild(overlay)
+    logger.debug('content-script', 'Successfully appended error modal to body')
+
+    // Force reflow to ensure styles are applied
+    void overlay.offsetWidth
+    void overlay.offsetHeight
+
+  } catch (e) {
+    logger.error('content-script', 'Error appending error modal', {
+      error: (e as Error).message,
+      url: window.location.href
+    }, e as Error)
+    return
+  }
+
+  // Show modal with animation
+  setTimeout(() => {
+    if (overlay) {
+      overlay.classList.add('visible')
+      logger.debug('content-script', 'Error modal visibility class added', {
+        overlayId: overlay.id,
+        overlayDisplay: getComputedStyle(overlay).display,
+        overlayOpacity: getComputedStyle(overlay).opacity,
+        overlayZIndex: getComputedStyle(overlay).zIndex
+      })
+    }
+  }, 10)
+
+  // Prevent page scrolling
+  try {
+    document.body.style.overflow = 'hidden'
+  } catch (e) {
+    logger.warn('content-script', 'Could not set body overflow style', undefined, e as Error)
+  }
+
+  // Additional debugging
+  logger.info('content-script', 'Error modal displayed successfully', {
+    overlayInDOM: !!document.getElementById(MODAL_OVERLAY_ID),
+    bodyChildrenCount: document.body.children.length,
+    errorType: errorType
+  })
+}
 
 function createConfirmationModal(): HTMLElement | null {
   try {
@@ -283,6 +720,16 @@ function showEventConfirmation(eventData: any) {
   const formFields = createEditableEventForm(eventData)
   confirmationContent.appendChild(formFields)
 
+  // Check if we should show review prompt
+  shouldShowReviewPrompt().then(shouldShow => {
+    if (shouldShow) {
+      const reviewPrompt = createReviewPrompt()
+      confirmationContent.insertBefore(reviewPrompt, confirmationContent.lastElementChild || null)
+    }
+  }).catch(error => {
+    logger.error('content-script', 'Error checking review prompt status', undefined, error)
+  })
+
   // Buttons
   const buttonContainer = document.createElement('div')
   buttonContainer.style.display = 'flex'
@@ -297,7 +744,7 @@ function showEventConfirmation(eventData: any) {
   const confirmButton = document.createElement('button')
   confirmButton.textContent = 'Add to Calendar'
   confirmButton.className = 'modal-button modal-button-primary'
-  confirmButton.onclick = () => {
+  confirmButton.onclick = async () => {
     // Collect data from form inputs
     const updatedEventData = collectFormData(formFields)
 
@@ -313,6 +760,10 @@ function showEventConfirmation(eventData: any) {
     }
 
     logger.info('content-script', 'User confirmed event with data', { updatedEventData })
+
+    // Increment successful events counter
+    await incrementSuccessfulEvents()
+
     openGoogleCalendar(updatedEventData)
     hideConfirmationModal()
   }
@@ -568,6 +1019,22 @@ Browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       hideConfirmationModal()
     } else if (message.action === 'showEventConfirmation') {
       showEventConfirmation(message.eventData)
+    } else if (message.action === 'showExtractionError') {
+      logger.info('content-script', 'Showing extraction error modal', {
+        originalText: message.originalText,
+        errorType: message.errorType
+      })
+
+      // Add debugging to check current modal state
+      const existingModal = document.getElementById(MODAL_OVERLAY_ID)
+      logger.debug('content-script', 'Modal state before error modal', {
+        existingModalExists: !!existingModal,
+        existingModalId: existingModal?.id,
+        existingModalVisible: existingModal ? getComputedStyle(existingModal).display : 'none'
+      })
+
+      // Directly show error modal (it will handle replacing any existing modal)
+      showErrorModal(message.errorType)
     } else if (message.action === 'showError') {
       showErrorInModal(message.message)
     } else if (message.action === 'ping') {
