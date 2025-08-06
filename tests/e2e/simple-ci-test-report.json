@@ -4,203 +4,245 @@
       "name": "Build Directory Exists",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.027Z"
+      "timestamp": "2025-08-06T15:25:46.908Z"
     },
     {
       "name": "Required File: manifest.json",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.028Z"
+      "timestamp": "2025-08-06T15:25:46.909Z"
     },
     {
       "name": "Required File: background.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.028Z"
+      "timestamp": "2025-08-06T15:25:46.909Z"
     },
     {
       "name": "Required File: content-script.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.028Z"
+      "timestamp": "2025-08-06T15:25:46.909Z"
     },
     {
       "name": "Required File: options.html",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.028Z"
+      "timestamp": "2025-08-06T15:25:46.909Z"
     },
     {
       "name": "Required File: options.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.028Z"
+      "timestamp": "2025-08-06T15:25:46.909Z"
     },
     {
       "name": "Required File: popup.html",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.029Z"
+      "timestamp": "2025-08-06T15:25:46.910Z"
     },
     {
       "name": "Required File: popup.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.029Z"
+      "timestamp": "2025-08-06T15:25:46.910Z"
     },
     {
       "name": "Manifest Field: name",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.029Z"
+      "timestamp": "2025-08-06T15:25:46.910Z"
     },
     {
       "name": "Manifest Field: version",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.029Z"
+      "timestamp": "2025-08-06T15:25:46.910Z"
     },
     {
       "name": "Manifest Field: manifest_version",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.030Z"
+      "timestamp": "2025-08-06T15:25:46.911Z"
     },
     {
       "name": "Manifest Field: permissions",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.030Z"
+      "timestamp": "2025-08-06T15:25:46.911Z"
     },
     {
       "name": "Manifest Field: background",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.030Z"
+      "timestamp": "2025-08-06T15:25:46.911Z"
     },
     {
       "name": "Manifest Field: content_scripts",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.030Z"
+      "timestamp": "2025-08-06T15:25:46.911Z"
     },
     {
       "name": "Manifest Version Format",
       "success": true,
       "details": "1.1.0",
-      "timestamp": "2025-08-06T15:06:00.030Z"
+      "timestamp": "2025-08-06T15:25:46.911Z"
     },
     {
       "name": "Package Script: build",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.912Z"
     },
     {
       "name": "Package Script: test:e2e",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.912Z"
     },
     {
       "name": "Package Script: test:e2e:ci",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.912Z"
     },
     {
       "name": "Puppeteer Dependency",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.912Z"
     },
     {
       "name": "Source Directory Exists",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.913Z"
     },
     {
       "name": "Source File: manifest.json",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.031Z"
+      "timestamp": "2025-08-06T15:25:46.913Z"
     },
     {
       "name": "Source File: background/index.ts",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.032Z"
+      "timestamp": "2025-08-06T15:25:46.913Z"
     },
     {
       "name": "Source File: content-script/index.ts",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.032Z"
+      "timestamp": "2025-08-06T15:25:46.914Z"
     },
     {
       "name": "Source File: options/index.tsx",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.032Z"
+      "timestamp": "2025-08-06T15:25:46.914Z"
     },
     {
       "name": "Source File: popup/index.tsx",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.032Z"
+      "timestamp": "2025-08-06T15:25:46.914Z"
     },
     {
       "name": "Test Directory Exists",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.915Z"
     },
     {
       "name": "Test File: e2e/setup-e2e-tests.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.915Z"
     },
     {
       "name": "Test File: e2e/ci-e2e-tests.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.915Z"
     },
     {
       "name": "Test File: test-page.html",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.915Z"
     },
     {
       "name": "Test File: MANUAL_TESTING_GUIDE.md",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.915Z"
     },
     {
       "name": "Test File: extension-debug.js",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.033Z"
+      "timestamp": "2025-08-06T15:25:46.916Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/index.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.916Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/simple-meeting.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.916Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/doctor-appointment.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.916Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/complex-event.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.917Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/vague-text.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.917Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/timeout-test.html",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.917Z"
+    },
+    {
+      "name": "Test Page: e2e/test-pages/README.md",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-08-06T15:25:46.917Z"
     },
     {
       "name": "Troubleshooting Guide",
       "success": true,
       "details": "",
-      "timestamp": "2025-08-06T15:06:00.034Z"
+      "timestamp": "2025-08-06T15:25:46.918Z"
     }
   ],
   "summary": {
-    "passed": 32,
+    "passed": 39,
     "failed": 0,
-    "duration": 24
+    "duration": 27
   },
   "environment": {
     "nodeVersion": "v18.18.0",
     "platform": "win32",
-    "timestamp": "2025-08-06T15:06:00.010Z"
+    "timestamp": "2025-08-06T15:25:46.891Z"
   }
 }

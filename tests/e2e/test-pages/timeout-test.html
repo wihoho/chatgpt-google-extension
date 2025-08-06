@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case: Long Text Timeout Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .test-text {
+            background: #fff8e1;
+            border: 2px dashed #ff8f00;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: justify;
+            margin: 20px 0;
+            cursor: text;
+            user-select: text;
+            transition: all 0.3s ease;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+        
+        .test-text:hover {
+            background: #ffecb3;
+            border-color: #f57c00;
+            box-shadow: 0 4px 12px rgba(255, 143, 0, 0.3);
+        }
+        
+        .test-text.selected {
+            background: #fff3cd;
+            border-color: #ffc107;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        
+        .expected-result {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        
+        .metadata {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.ready { background: #d4edda; color: #155724; }
+        .status.testing { background: #fff3cd; color: #856404; }
+        .status.success { background: #d1ecf1; color: #0c5460; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        
+        .github-info {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .github-info code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>⏱️ Test Case: Timeout Test</h1>
+            <p>Testing AI extraction timeout with very long text</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Test Instructions:</h3>
+            <ol>
+                <li><strong>Select ALL the text below</strong> (use Ctrl+A or triple-click and drag)</li>
+                <li><strong>Right-click</strong> on the selected text</li>
+                <li><strong>Choose "Add to calendar"</strong> from the context menu</li>
+                <li><strong>Wait for timeout</strong> - should occur after 5 seconds</li>
+                <li><strong>Verify</strong> timeout error modal appears</li>
+            </ol>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Note:</strong> This test contains very long text to trigger the 5-second timeout. 
+            The event information is at the end, but the AI should timeout before reaching it.
+        </div>
+
+        <div class="test-text" id="test-text">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur. Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Team meeting at 3:00 PM tomorrow.
+        </div>
+
+        <div class="expected-result">
+            <h3>⏱️ Expected Results (Timeout Case):</h3>
+            <ul>
+                <li><strong>Timeout occurs:</strong> Should timeout after exactly 5 seconds</li>
+                <li><strong>Timeout modal appears:</strong> Special timeout error modal</li>
+                <li><strong>Clock icon shown:</strong> ⏱️ icon in timeout modal</li>
+                <li><strong>Timeout message:</strong> "Extraction Timed Out" title</li>
+                <li><strong>Helpful tips:</strong> Guidance for selecting shorter text</li>
+                <li><strong>Expectation:</strong> expectTimeout = true</li>
+            </ul>
+        </div>
+
+        <div class="metadata">
+            <h3>🔧 Test Metadata:</h3>
+            <div><strong>Test Name:</strong> Long complex text (timeout test)</div>
+            <div><strong>Expected Fields:</strong> ['title', 'startDate'] (if no timeout)</div>
+            <div><strong>Should Succeed:</strong> true (but should timeout first)</div>
+            <div><strong>Expect Timeout:</strong> true</div>
+            <div><strong>Text Length:</strong> <span id="text-length"></span> characters</div>
+            <div><strong>Test Type:</strong> Timeout handling and performance limits</div>
+            <div><strong>Timeout Limit:</strong> 5 seconds</div>
+        </div>
+
+        <div class="status ready" id="status">
+            🟢 Ready for testing - Select ALL text above and right-click
+        </div>
+
+        <div class="github-info">
+            <h3>📁 GitHub Integration:</h3>
+            <p>This test page can be accessed via GitHub Pages at:</p>
+            <code>https://[username].github.io/[repo]/tests/e2e/test-pages/timeout-test.html</code>
+            <p>Use this URL in automated E2E tests for real browser testing.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        const testText = document.getElementById('test-text');
+        const status = document.getElementById('status');
+        const textLength = document.getElementById('text-length');
+        
+        // Set text length
+        textLength.textContent = testText.textContent.trim().length;
+        
+        // Track text selection
+        testText.addEventListener('mouseup', function() {
+            const selection = window.getSelection();
+            if (selection.toString().length > 0) {
+                this.classList.add('selected');
+                status.className = 'status testing';
+                status.innerHTML = '🟡 Text selected - Right-click to test timeout (expect 5-second delay)';
+                console.log('📝 Text selected length:', selection.toString().length);
+            }
+        });
+        
+        // Track when selection is cleared
+        document.addEventListener('selectionchange', function() {
+            const selection = window.getSelection();
+            if (selection.toString().length === 0) {
+                testText.classList.remove('selected');
+                status.className = 'status ready';
+                status.innerHTML = '🟢 Ready for testing - Select ALL text above and right-click';
+            }
+        });
+        
+        // Auto-select ALL text when clicked
+        testText.addEventListener('click', function() {
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+        
+        // Log page info
+        console.log('🧪 Test Page: Timeout Test');
+        console.log('📝 Test Text Length:', testText.textContent.trim().length, 'characters');
+        console.log('🔗 Page URL:', window.location.href);
+        console.log('💡 Instructions: Select ALL text and right-click to test extension');
+        console.log('⏱️ Expected: Timeout should occur after 5 seconds');
+        
+        // Check for extension
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            console.log('✅ Chrome extension API available');
+            console.log('🆔 Extension ID:', chrome.runtime.id);
+        } else {
+            console.log('❌ Chrome extension API not available');
+        }
+        
+        // Check for content script
+        setTimeout(() => {
+            if (typeof window.extensionContentScriptLoaded !== 'undefined') {
+                console.log('✅ Content script loaded');
+            } else {
+                console.log('❌ Content script not loaded');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

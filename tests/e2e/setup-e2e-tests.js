@@ -20,38 +20,52 @@ const E2E_CONFIG = {
   ]
 }
 
+// Test page URLs (can be updated to use GitHub Pages URLs)
+const TEST_PAGES = {
+  simpleMeeting: path.resolve(__dirname, 'test-pages/simple-meeting.html'),
+  doctorAppt: path.resolve(__dirname, 'test-pages/doctor-appointment.html'),
+  complexEvent: path.resolve(__dirname, 'test-pages/complex-event.html'),
+  vagueText: path.resolve(__dirname, 'test-pages/vague-text.html'),
+  timeoutTest: path.resolve(__dirname, 'test-pages/timeout-test.html')
+}
+
 // Test data for event extraction
 const TEST_SCENARIOS = [
   {
     name: 'Simple meeting with date and time',
     text: 'Team meeting tomorrow at 2:00 PM in Conference Room A',
     expectedFields: ['title', 'startDate'],
-    shouldSucceed: true
+    shouldSucceed: true,
+    pageUrl: 'file://' + TEST_PAGES.simpleMeeting
   },
   {
     name: 'Doctor appointment with specific date',
     text: 'Doctor appointment on March 15th at 10:30 AM at Medical Center',
     expectedFields: ['title', 'startDate', 'location'],
-    shouldSucceed: true
+    shouldSucceed: true,
+    pageUrl: 'file://' + TEST_PAGES.doctorAppt
   },
   {
     name: 'Complex event with all details',
     text: 'Annual company retreat from March 20-22, 2024 at Mountain Resort Lodge. All employees invited for team building activities.',
     expectedFields: ['title', 'startDate', 'endDate', 'location', 'description'],
-    shouldSucceed: true
+    shouldSucceed: true,
+    pageUrl: 'file://' + TEST_PAGES.complexEvent
   },
   {
     name: 'Vague text without clear event info',
     text: 'This is just some random text without any event information or dates.',
     expectedFields: [],
-    shouldSucceed: false
+    shouldSucceed: false,
+    pageUrl: 'file://' + TEST_PAGES.vagueText
   },
   {
     name: 'Long complex text (timeout test)',
     text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(100) + 'Meeting at 3 PM',
     expectedFields: ['title', 'startDate'],
     shouldSucceed: true,
-    expectTimeout: true
+    expectTimeout: true,
+    pageUrl: 'file://' + TEST_PAGES.timeoutTest
   }
 ]
 
@@ -126,13 +140,13 @@ class ExtensionE2ETester {
     console.log(`📝 Text: "${scenario.text.substring(0, 100)}${scenario.text.length > 100 ? '...' : ''}"`)
 
     try {
-      // Navigate to a simple test page
-      await this.page.goto('data:text/html,<html><body><h1>Test Page</h1><p>Select text below:</p><div id="test-text">' + scenario.text + '</div></body></html>')
-      
+      // Navigate to the real test page
+      await this.page.goto(scenario.pageUrl)
+
       // Wait for page to load
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Select the test text
+      // Select the test text (works with our test page structure)
       await this.page.evaluate(() => {
         const textElement = document.getElementById('test-text')
         if (textElement) {

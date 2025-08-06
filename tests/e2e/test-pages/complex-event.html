@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Case: Complex Event with All Details</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .test-text {
+            background: #fff0f6;
+            border: 2px dashed #e83e8c;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+            margin: 20px 0;
+            cursor: text;
+            user-select: text;
+            transition: all 0.3s ease;
+            line-height: 1.5;
+        }
+        
+        .test-text:hover {
+            background: #fce4ec;
+            border-color: #ad1457;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(232, 62, 140, 0.3);
+        }
+        
+        .test-text.selected {
+            background: #e8f5e8;
+            border-color: #4caf50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        
+        .expected-result {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        
+        .metadata {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status.ready { background: #d4edda; color: #155724; }
+        .status.testing { background: #fff3cd; color: #856404; }
+        .status.success { background: #d1ecf1; color: #0c5460; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        
+        .github-info {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .github-info code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🏢 Test Case: Complex Event</h1>
+            <p>Testing comprehensive event extraction with all details</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Test Instructions:</h3>
+            <ol>
+                <li><strong>Select the text below</strong> by clicking and dragging or triple-clicking</li>
+                <li><strong>Right-click</strong> on the selected text</li>
+                <li><strong>Choose "Add to calendar"</strong> from the context menu</li>
+                <li><strong>Verify</strong> that a modal appears with all extracted event details</li>
+            </ol>
+        </div>
+
+        <div class="test-text" id="test-text">
+            Annual company retreat from March 20-22, 2024 at Mountain Resort Lodge. All employees invited for team building activities.
+        </div>
+
+        <div class="expected-result">
+            <h3>✅ Expected Results:</h3>
+            <ul>
+                <li><strong>Modal appears:</strong> Confirmation modal should display</li>
+                <li><strong>Title extracted:</strong> "Annual company retreat" or similar</li>
+                <li><strong>Start Date:</strong> March 20, 2024</li>
+                <li><strong>End Date:</strong> March 22, 2024 (multi-day event)</li>
+                <li><strong>Location extracted:</strong> "Mountain Resort Lodge"</li>
+                <li><strong>Description extracted:</strong> Details about team building activities</li>
+                <li><strong>Success:</strong> shouldSucceed = true</li>
+            </ul>
+        </div>
+
+        <div class="metadata">
+            <h3>🔧 Test Metadata:</h3>
+            <div><strong>Test Name:</strong> Complex event with all details</div>
+            <div><strong>Expected Fields:</strong> ['title', 'startDate', 'endDate', 'location', 'description']</div>
+            <div><strong>Should Succeed:</strong> true</div>
+            <div><strong>Text Length:</strong> <span id="text-length"></span> characters</div>
+            <div><strong>Test Type:</strong> Comprehensive multi-field extraction</div>
+            <div><strong>Special Features:</strong> Multi-day event, detailed description</div>
+        </div>
+
+        <div class="status ready" id="status">
+            🟢 Ready for testing - Select text above and right-click
+        </div>
+
+        <div class="github-info">
+            <h3>📁 GitHub Integration:</h3>
+            <p>This test page can be accessed via GitHub Pages at:</p>
+            <code>https://[username].github.io/[repo]/tests/e2e/test-pages/complex-event.html</code>
+            <p>Use this URL in automated E2E tests for real browser testing.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        const testText = document.getElementById('test-text');
+        const status = document.getElementById('status');
+        const textLength = document.getElementById('text-length');
+        
+        // Set text length
+        textLength.textContent = testText.textContent.trim().length;
+        
+        // Track text selection
+        testText.addEventListener('mouseup', function() {
+            const selection = window.getSelection();
+            if (selection.toString().length > 0) {
+                this.classList.add('selected');
+                status.className = 'status testing';
+                status.innerHTML = '🟡 Text selected - Right-click to test extension';
+                console.log('📝 Text selected:', selection.toString());
+            }
+        });
+        
+        // Track when selection is cleared
+        document.addEventListener('selectionchange', function() {
+            const selection = window.getSelection();
+            if (selection.toString().length === 0) {
+                testText.classList.remove('selected');
+                status.className = 'status ready';
+                status.innerHTML = '🟢 Ready for testing - Select text above and right-click';
+            }
+        });
+        
+        // Auto-select text when clicked
+        testText.addEventListener('click', function() {
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+        
+        // Log page info
+        console.log('🧪 Test Page: Complex Event');
+        console.log('📝 Test Text:', testText.textContent.trim());
+        console.log('🔗 Page URL:', window.location.href);
+        console.log('💡 Instructions: Select text and right-click to test extension');
+        
+        // Check for extension
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            console.log('✅ Chrome extension API available');
+            console.log('🆔 Extension ID:', chrome.runtime.id);
+        } else {
+            console.log('❌ Chrome extension API not available');
+        }
+        
+        // Check for content script
+        setTimeout(() => {
+            if (typeof window.extensionContentScriptLoaded !== 'undefined') {
+                console.log('✅ Content script loaded');
+            } else {
+                console.log('❌ Content script not loaded');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

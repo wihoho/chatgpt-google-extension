@@ -177,11 +177,29 @@ class SimpleCITester {
       'MANUAL_TESTING_GUIDE.md',
       'extension-debug.js'
     ]
+
+    // Check E2E test pages
+    const requiredTestPages = [
+      'e2e/test-pages/index.html',
+      'e2e/test-pages/simple-meeting.html',
+      'e2e/test-pages/doctor-appointment.html',
+      'e2e/test-pages/complex-event.html',
+      'e2e/test-pages/vague-text.html',
+      'e2e/test-pages/timeout-test.html',
+      'e2e/test-pages/README.md'
+    ]
     
     for (const file of requiredTestFiles) {
       const filePath = path.join(testPath, file)
       const exists = fs.existsSync(filePath)
       this.addTestResult(`Test File: ${file}`, exists, exists ? '' : `File not found: ${filePath}`)
+    }
+
+    // Check E2E test pages
+    for (const file of requiredTestPages) {
+      const filePath = path.join(testPath, file)
+      const exists = fs.existsSync(filePath)
+      this.addTestResult(`Test Page: ${file}`, exists, exists ? '' : `File not found: ${filePath}`)
     }
 
     // Check for troubleshooting guide in root

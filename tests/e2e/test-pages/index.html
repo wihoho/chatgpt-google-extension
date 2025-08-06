@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Test Pages - ChatGPT Calendar Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #ddd;
+        }
+        
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .test-card.success { border-left-color: #28a745; }
+        .test-card.error { border-left-color: #dc3545; }
+        .test-card.timeout { border-left-color: #ffc107; }
+        .test-card.complex { border-left-color: #6f42c1; }
+        
+        .test-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .test-card p {
+            color: #666;
+            margin: 0 0 15px 0;
+        }
+        
+        .test-link {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+        
+        .test-link:hover {
+            background: #0056b3;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .metadata {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .github-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 30px 0;
+        }
+        
+        .github-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .url-example {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 E2E Test Pages</h1>
+        <p>Real browser test pages for ChatGPT Calendar Extension</p>
+        <p>Each page tests specific functionality and can be used for automated testing</p>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 How to Use These Test Pages:</h3>
+        <ol>
+            <li><strong>Manual Testing:</strong> Click on any test page link below</li>
+            <li><strong>Automated Testing:</strong> Use the GitHub Pages URLs in your E2E test scripts</li>
+            <li><strong>Extension Required:</strong> Make sure the ChatGPT Calendar extension is loaded in Chrome</li>
+            <li><strong>Follow Instructions:</strong> Each page has specific test instructions</li>
+        </ol>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Test Scenarios</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Success Cases</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">2</div>
+            <div class="stat-label">Error Cases</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Coverage</div>
+        </div>
+    </div>
+
+    <div class="test-grid">
+        <div class="test-card success">
+            <h3>🎯 Simple Meeting</h3>
+            <p>Basic event extraction with date and time. Tests fundamental functionality.</p>
+            <div class="metadata">
+                Text: "Team meeting tomorrow at 2:00 PM in Conference Room A"<br>
+                Expected: title, startDate<br>
+                Should succeed: true
+            </div>
+            <a href="simple-meeting.html" class="test-link">Run Test</a>
+        </div>
+
+        <div class="test-card success">
+            <h3>🏥 Doctor Appointment</h3>
+            <p>Event extraction with specific date and location. Tests date parsing accuracy.</p>
+            <div class="metadata">
+                Text: "Doctor appointment on March 15th at 10:30 AM at Medical Center"<br>
+                Expected: title, startDate, location<br>
+                Should succeed: true
+            </div>
+            <a href="doctor-appointment.html" class="test-link">Run Test</a>
+        </div>
+
+        <div class="test-card complex">
+            <h3>🏢 Complex Event</h3>
+            <p>Comprehensive extraction with all details. Tests multi-day events and descriptions.</p>
+            <div class="metadata">
+                Text: "Annual company retreat from March 20-22, 2024 at Mountain Resort Lodge..."<br>
+                Expected: title, startDate, endDate, location, description<br>
+                Should succeed: true
+            </div>
+            <a href="complex-event.html" class="test-link">Run Test</a>
+        </div>
+
+        <div class="test-card error">
+            <h3>❌ Vague Text</h3>
+            <p>Error handling for text without event information. Tests graceful failure.</p>
+            <div class="metadata">
+                Text: "This is just some random text without any event information..."<br>
+                Expected: [] (no fields)<br>
+                Should succeed: false
+            </div>
+            <a href="vague-text.html" class="test-link">Run Test</a>
+        </div>
+
+        <div class="test-card timeout">
+            <h3>⏱️ Timeout Test</h3>
+            <p>AI extraction timeout with very long text. Tests performance limits.</p>
+            <div class="metadata">
+                Text: Very long Lorem ipsum text with event info at end<br>
+                Expected: timeout after 5 seconds<br>
+                Expect timeout: true
+            </div>
+            <a href="timeout-test.html" class="test-link">Run Test</a>
+        </div>
+    </div>
+
+    <div class="github-section">
+        <h2>📁 GitHub Pages Integration</h2>
+        <p>Once committed to GitHub, these test pages will be available at:</p>
+        
+        <div class="url-example">
+            https://[username].github.io/[repository]/tests/e2e/test-pages/
+        </div>
+        
+        <h3>🔗 Individual Test URLs:</h3>
+        <ul>
+            <li><code>simple-meeting.html</code> - Basic event extraction test</li>
+            <li><code>doctor-appointment.html</code> - Specific date and location test</li>
+            <li><code>complex-event.html</code> - Multi-field extraction test</li>
+            <li><code>vague-text.html</code> - Error handling test</li>
+            <li><code>timeout-test.html</code> - Performance timeout test</li>
+        </ul>
+
+        <h3>🤖 Automated Testing Usage:</h3>
+        <p>Update your E2E test scripts to use these URLs:</p>
+        <div class="url-example">
+// In setup-e2e-tests.js
+const TEST_PAGES = {
+  simpleMeeting: 'https://[username].github.io/[repo]/tests/e2e/test-pages/simple-meeting.html',
+  doctorAppt: 'https://[username].github.io/[repo]/tests/e2e/test-pages/doctor-appointment.html',
+  complexEvent: 'https://[username].github.io/[repo]/tests/e2e/test-pages/complex-event.html',
+  vagueText: 'https://[username].github.io/[repo]/tests/e2e/test-pages/vague-text.html',
+  timeoutTest: 'https://[username].github.io/[repo]/tests/e2e/test-pages/timeout-test.html'
+}
+
+// Navigate to real test page instead of data: URL
+await this.page.goto(TEST_PAGES.simpleMeeting)
+        </div>
+
+        <h3>✅ Benefits of Real Test Pages:</h3>
+        <ul>
+            <li><strong>Real Environment:</strong> Tests run on actual web pages, not data URLs</li>
+            <li><strong>Consistent URLs:</strong> Stable URLs for automated testing</li>
+            <li><strong>Visual Testing:</strong> Manual testers can easily access test scenarios</li>
+            <li><strong>CI/CD Integration:</strong> Reliable test pages for continuous integration</li>
+            <li><strong>Cross-Browser Testing:</strong> Test on different browsers and environments</li>
+        </ul>
+    </div>
+
+    <script>
+        // Log page info
+        console.log('🧪 E2E Test Pages Index');
+        console.log('📊 Available test scenarios:', 5);
+        console.log('🔗 Page URL:', window.location.href);
+        
+        // Check for extension
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            console.log('✅ Chrome extension API available');
+            console.log('🆔 Extension ID:', chrome.runtime.id);
+        } else {
+            console.log('❌ Chrome extension API not available');
+            console.log('💡 Load the ChatGPT Calendar extension to test');
+        }
+        
+        // Add click tracking
+        document.querySelectorAll('.test-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                console.log('🔗 Opening test page:', this.href);
+            });
+        });
+    </script>
+</body>
+</html>
