@@ -1,0 +1,21 @@
+{
+  "scenarios": [
+    {
+      "scenario": "Basic Browser Test",
+      "success": true,
+      "test": "Basic browser functionality"
+    }
+  ],
+  "reviewPrompt": null,
+  "summary": {
+    "passed": 1,
+    "failed": 0,
+    "duration": 5999
+  },
+  "environment": {
+    "nodeVersion": "v18.18.0",
+    "platform": "win32",
+    "timestamp": "2025-08-06T14:55:57.484Z",
+    "extensionId": "test-mode"
+  }
+}

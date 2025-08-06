@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test - ChatGPT Calendar Extension</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 2px dashed #ccc;
+        }
+        
+        .test-text {
+            background: yellow;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ff6b6b;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: text;
+            user-select: text;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-left: 4px solid #2196f3;
+            margin: 15px 0;
+        }
+        
+        .debug-info {
+            background: #f1f8e9;
+            padding: 15px;
+            border-left: 4px solid #4caf50;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Modal Test Page</h1>
+    <p>Use this page to test if the ChatGPT Calendar Extension modal is working correctly.</p>
+
+    <div class="instructions">
+        <h3>📋 Test Instructions:</h3>
+        <ol>
+            <li><strong>Load Extension:</strong> Make sure the extension is loaded in Chrome</li>
+            <li><strong>Select Text:</strong> Highlight the test text below</li>
+            <li><strong>Right-Click:</strong> Right-click on selected text</li>
+            <li><strong>Click "Add to calendar":</strong> Should trigger the modal</li>
+            <li><strong>Check Console:</strong> Open F12 and check for any errors</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 Test Case 1: Simple Event</h3>
+        <div class="test-text" id="test1">
+            Team meeting tomorrow at 2:00 PM in Conference Room A
+        </div>
+        <p><strong>Expected:</strong> Modal should appear with extracted event details</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 Test Case 2: Doctor Appointment</h3>
+        <div class="test-text" id="test2">
+            Doctor appointment on March 15th at 10:30 AM at Medical Center
+        </div>
+        <p><strong>Expected:</strong> Modal should appear with date, time, and location</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🎯 Test Case 3: No Event Info (Error Test)</h3>
+        <div class="test-text" id="test3">
+            This is just random text with no event information whatsoever
+        </div>
+        <p><strong>Expected:</strong> Error modal should appear with helpful tips</p>
+    </div>
+
+    <div class="debug-info">
+        <h3>🔧 Debug Information:</h3>
+        <div id="debug-output">
+            <p>Extension Status: <span id="extension-status">Checking...</span></p>
+            <p>Content Script: <span id="content-script-status">Checking...</span></p>
+            <p>Page URL: <span id="page-url"></span></p>
+            <p>User Agent: <span id="user-agent"></span></p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🛠️ Manual Tests:</h3>
+        <button onclick="testExtensionAPI()">Test Extension API</button>
+        <button onclick="testContentScript()">Test Content Script</button>
+        <button onclick="testModalCreation()">Test Modal Creation</button>
+        <button onclick="clearConsole()">Clear Console</button>
+        <div id="test-results" style="margin-top: 15px;"></div>
+    </div>
+
+    <script>
+        // Initialize debug info
+        document.getElementById('page-url').textContent = window.location.href
+        document.getElementById('user-agent').textContent = navigator.userAgent
+
+        // Check extension status
+        function checkExtensionStatus() {
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+                document.getElementById('extension-status').innerHTML = '<span style="color: green;">✅ Available</span>'
+                document.getElementById('extension-status').title = 'Extension ID: ' + chrome.runtime.id
+            } else {
+                document.getElementById('extension-status').innerHTML = '<span style="color: red;">❌ Not Available</span>'
+            }
+        }
+
+        // Check content script status
+        function checkContentScriptStatus() {
+            if (typeof window.extensionContentScriptLoaded !== 'undefined') {
+                document.getElementById('content-script-status').innerHTML = '<span style="color: green;">✅ Loaded</span>'
+            } else {
+                document.getElementById('content-script-status').innerHTML = '<span style="color: red;">❌ Not Loaded</span>'
+            }
+        }
+
+        // Test functions
+        function testExtensionAPI() {
+            const results = document.getElementById('test-results')
+            
+            if (typeof chrome === 'undefined' || !chrome.runtime) {
+                results.innerHTML = '<p style="color: red;">❌ Chrome extension API not available</p>'
+                return
+            }
+
+            chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    results.innerHTML = '<p style="color: red;">❌ Extension API Error: ' + chrome.runtime.lastError.message + '</p>'
+                } else {
+                    results.innerHTML = '<p style="color: green;">✅ Extension API working: ' + JSON.stringify(response) + '</p>'
+                }
+            })
+        }
+
+        function testContentScript() {
+            const results = document.getElementById('test-results')
+            
+            if (typeof window.extensionContentScriptLoaded !== 'undefined') {
+                results.innerHTML = '<p style="color: green;">✅ Content script is loaded and working</p>'
+            } else {
+                results.innerHTML = '<p style="color: red;">❌ Content script not loaded. Try refreshing the page.</p>'
+            }
+        }
+
+        function testModalCreation() {
+            const results = document.getElementById('test-results')
+            
+            if (typeof chrome === 'undefined' || !chrome.runtime) {
+                results.innerHTML = '<p style="color: red;">❌ Extension not available for modal test</p>'
+                return
+            }
+
+            // Try to trigger modal creation
+            chrome.runtime.sendMessage({ action: 'testContentScript' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    results.innerHTML = '<p style="color: red;">❌ Modal test failed: ' + chrome.runtime.lastError.message + '</p>'
+                } else {
+                    results.innerHTML = '<p style="color: green;">✅ Modal test response: ' + JSON.stringify(response) + '</p>'
+                }
+            })
+        }
+
+        function clearConsole() {
+            console.clear()
+            console.log('🧪 Modal Test Page - Console Cleared')
+            console.log('💡 Select text above and right-click to test extension')
+            document.getElementById('test-results').innerHTML = '<p style="color: blue;">ℹ️ Console cleared. Check F12 for new messages.</p>'
+        }
+
+        // Auto-select text when clicked
+        document.querySelectorAll('.test-text').forEach(element => {
+            element.addEventListener('click', function() {
+                const range = document.createRange()
+                range.selectNodeContents(this)
+                const selection = window.getSelection()
+                selection.removeAllRanges()
+                selection.addRange(range)
+                
+                console.log('📝 Text selected:', this.textContent)
+                document.getElementById('test-results').innerHTML = '<p style="color: blue;">📝 Text selected. Now right-click and choose "Add to calendar"</p>'
+            })
+        })
+
+        // Run initial checks
+        setTimeout(() => {
+            checkExtensionStatus()
+            checkContentScriptStatus()
+        }, 1000)
+
+        // Log page load
+        console.log('🧪 Modal Test Page loaded')
+        console.log('🔍 Extension Status:', typeof chrome !== 'undefined' && chrome.runtime ? 'Available' : 'Not Available')
+        console.log('🔍 Content Script:', typeof window.extensionContentScriptLoaded !== 'undefined' ? 'Loaded' : 'Not Loaded')
+        console.log('💡 Click on highlighted text to select it, then right-click to test extension')
+    </script>
+</body>
+</html>

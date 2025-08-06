@@ -6,7 +6,12 @@
     "lint": "eslint --ext .js,.mjs,.jsx .",
     "lint:fix": "eslint --ext .js,.mjs,.jsx . --fix",
     "prepare": "husky install",
-    "watch": "chokidar src -c 'npm run build'"
+    "watch": "chokidar src -c 'npm run build'",
+    "test:e2e": "node tests/e2e/setup-e2e-tests.js",
+    "test:e2e:ci": "node tests/e2e/ci-e2e-tests.js",
+    "test:ci": "node tests/e2e/simple-ci-tests.js",
+    "prerelease": "npm run build && npm run test:ci",
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "@geist-ui/core": "^2.3.8",
@@ -51,6 +56,7 @@
     "postcss-scss": "^4.0.6",
     "prettier": "^2.8.0",
     "prettier-plugin-organize-imports": "^3.2.1",
+    "puppeteer": "^21.11.0",
     "sass": "^1.57.1",
     "tailwindcss": "^3.2.4",
     "typescript": "^4.9.4",

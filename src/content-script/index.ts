@@ -483,6 +483,8 @@ function createConfirmationModal(): HTMLElement | null {
       transition: opacity 0.3s ease-in-out !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       box-sizing: border-box !important;
+      pointer-events: auto !important;
+      visibility: visible !important;
     `
 
     // Create modal container with enhanced styling
@@ -622,6 +624,13 @@ function showConfirmationModal() {
     return
   }
 
+  // Remove any existing modal first
+  const existingOverlay = document.getElementById(MODAL_OVERLAY_ID)
+  if (existingOverlay) {
+    logger.debug('content-script', 'Removing existing modal overlay')
+    existingOverlay.remove()
+  }
+
   let overlay = document.getElementById(MODAL_OVERLAY_ID)
   if (!overlay) {
     logger.debug('content-script', 'Creating new confirmation modal')
@@ -646,6 +655,17 @@ function showConfirmationModal() {
       void overlay.offsetWidth
       void overlay.offsetHeight
 
+      // Additional debugging
+      logger.info('content-script', 'Modal creation debug info', {
+        overlayId: overlay.id,
+        overlayInDOM: !!document.getElementById(MODAL_OVERLAY_ID),
+        overlayParent: overlay.parentElement?.tagName,
+        overlayDisplay: getComputedStyle(overlay).display,
+        overlayVisibility: getComputedStyle(overlay).visibility,
+        overlayZIndex: getComputedStyle(overlay).zIndex,
+        bodyChildrenCount: document.body.children.length
+      })
+
     } catch (e) {
       logger.error('content-script', 'Error appending modal - possible CSP restriction', {
         error: (e as Error).message,
@@ -659,7 +679,16 @@ function showConfirmationModal() {
   setTimeout(() => {
     if (overlay) {
       overlay.classList.add('visible')
-      logger.debug('content-script', 'Modal visibility class added')
+      overlay.style.opacity = '1'
+      logger.debug('content-script', 'Modal visibility class added and opacity set')
+
+      // Additional debugging after making visible
+      logger.info('content-script', 'Modal visibility debug info', {
+        hasVisibleClass: overlay.classList.contains('visible'),
+        computedOpacity: getComputedStyle(overlay).opacity,
+        computedDisplay: getComputedStyle(overlay).display,
+        boundingRect: overlay.getBoundingClientRect()
+      })
     }
   }, 10)
 
@@ -671,6 +700,67 @@ function showConfirmationModal() {
   }
 
   logger.info('content-script', 'Confirmation modal displayed successfully')
+}
+
+function createFallbackModal() {
+  logger.info('content-script', 'Creating fallback modal')
+
+  // Create a very simple modal that should work on any page
+  const overlay = document.createElement('div')
+  overlay.id = MODAL_OVERLAY_ID
+  overlay.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 999999;
+      max-width: 400px;
+      font-family: Arial, sans-serif;
+    ">
+      <h3 style="margin: 0 0 15px 0; color: #333;">Processing Event...</h3>
+      <p style="margin: 0 0 15px 0; color: #666;">
+        The extension is processing your selected text to extract event information.
+      </p>
+      <div style="text-align: center;">
+        <div style="
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          border: 2px solid #f3f3f3;
+          border-top: 2px solid #3498db;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        "></div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
+  `
+
+  overlay.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  `
+
+  document.body.appendChild(overlay)
+  logger.info('content-script', 'Fallback modal created and displayed')
 }
 
 function showEventConfirmation(eventData: any) {
@@ -1015,6 +1105,20 @@ Browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.action === 'showModal') {
       showConfirmationModal()
+
+      // Verify modal was created and add fallback
+      setTimeout(() => {
+        const overlay = document.getElementById(MODAL_OVERLAY_ID)
+        if (!overlay) {
+          logger.warn('content-script', 'Modal not found after creation, creating fallback')
+          try {
+            createFallbackModal()
+          } catch (error) {
+            logger.error('content-script', 'Fallback modal creation failed, using alert', undefined, error as Error)
+            alert('ChatGPT Calendar Extension: Processing your selected text...')
+          }
+        }
+      }, 100)
     } else if (message.action === 'hideModal') {
       hideConfirmationModal()
     } else if (message.action === 'showEventConfirmation') {
