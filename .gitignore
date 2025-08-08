@@ -17,3 +17,5 @@ background.js
 src/config.ts
 *.md
 debug-key.js
+tests/e2e/screenshots
+tests/e2e/screenshots/FAILED_Review_prompt_trigger_test.png
