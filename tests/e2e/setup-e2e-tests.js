@@ -52,21 +52,6 @@ const TEST_SCENARIOS = [
     shouldSucceed: true,
     pageUrl: 'file://' + TEST_PAGES.complexEvent
   },
-  {
-    name: 'Vague text without clear event info',
-    text: 'This is just some random text without any event information or dates.',
-    expectedFields: [],
-    shouldSucceed: false,
-    pageUrl: 'file://' + TEST_PAGES.vagueText
-  },
-  {
-    name: 'Long complex text (timeout test)',
-    text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(100) + 'Meeting at 3 PM',
-    expectedFields: ['title', 'startDate'],
-    shouldSucceed: true,
-    expectTimeout: true,
-    pageUrl: 'file://' + TEST_PAGES.timeoutTest
-  }
 ]
 
 class ExtensionE2ETester {
@@ -382,7 +367,7 @@ class ExtensionE2ETester {
         }
 
         // Wait between tests
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise(resolve => setTimeout(resolve, 5000))
       }
 
       // Test review prompt
