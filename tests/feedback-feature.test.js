@@ -108,73 +108,61 @@ function resetMocks() {
 // Test cases
 const tests = [
   {
-    name: 'Feedback email should contain correct subject and body template',
+    name: 'Feedback button should open Reddit profile',
     async run() {
       resetMocks()
-      
-      // Set up successful events count
-      await mockBrowser.storage.local.set({ successfulEvents: 5 })
-      
-      // Simulate the feedback email generation logic
-      const result = await mockBrowser.storage.local.get(['successfulEvents'])
-      const count = result.successfulEvents || 0
-      
-      const subject = encodeURIComponent('ChatGPT for Google Calendar - User Feedback')
-      const body = encodeURIComponent(`Hi!\n\nI've been using your ChatGPT for Google Calendar extension and wanted to share some feedback:\n\n[Please share your thoughts, suggestions, or any issues you've encountered]\n\nWhat I'd love to see:\n- [Any feature requests]\n\nMy usage: Created ${count} events so far\n\nThanks for creating this useful tool!\n\nBest regards`)
-      const expectedUrl = `mailto:wihoho@gmail.com?subject=${subject}&body=${body}`
-      
+
+      const expectedUrl = 'https://www.reddit.com/user/Loose_Ad_6677/'
+
       // Simulate clicking the feedback button
       mockWindow.open(expectedUrl, '_blank')
-      
+
       // Verify the URL was opened correctly
       if (mockWindow.openedUrls.length !== 1) {
         throw new Error(`Expected 1 URL to be opened, got ${mockWindow.openedUrls.length}`)
       }
-      
+
       const openedUrl = mockWindow.openedUrls[0]
       if (openedUrl.url !== expectedUrl) {
         throw new Error(`Expected URL to be ${expectedUrl}, got ${openedUrl.url}`)
       }
-      
+
       if (openedUrl.target !== '_blank') {
         throw new Error(`Expected target to be '_blank', got ${openedUrl.target}`)
       }
-      
-      // Verify the email contains the event count (URL encoded)
-      if (!openedUrl.url.includes(`Created%20${count}%20events`)) {
-        throw new Error('Email body should contain the event count')
+
+      // Verify it's the correct Reddit profile
+      if (!openedUrl.url.includes('reddit.com/user/Loose_Ad_6677')) {
+        throw new Error('Should open the correct Reddit profile')
       }
-      
-      // Verify the email contains the correct recipient
-      if (!openedUrl.url.includes('wihoho@gmail.com')) {
-        throw new Error('Email should be sent to wihoho@gmail.com')
-      }
-      
+
       return 'PASS'
     }
   },
   
   {
-    name: 'Feedback email should work with different event counts',
+    name: 'Reddit contact should be consistent',
     async run() {
       resetMocks()
-      
-      const testCounts = [1, 10, 25, 100]
-      
-      for (const count of testCounts) {
-        resetMocks()
-        await mockBrowser.storage.local.set({ successfulEvents: count })
-        
-        const result = await mockBrowser.storage.local.get(['successfulEvents'])
-        const actualCount = result.successfulEvents || 0
-        
-        const body = encodeURIComponent(`Hi!\n\nI've been using your ChatGPT for Google Calendar extension and wanted to share some feedback:\n\n[Please share your thoughts, suggestions, or any issues you've encountered]\n\nWhat I'd love to see:\n- [Any feature requests]\n\nMy usage: Created ${actualCount} events so far\n\nThanks for creating this useful tool!\n\nBest regards`)
-        
-        if (!body.includes(`Created%20${actualCount}%20events`)) {
-          throw new Error(`Email body should contain 'Created ${actualCount} events' for count ${count}`)
+
+      const expectedUrl = 'https://www.reddit.com/user/Loose_Ad_6677/'
+
+      // Test multiple clicks to ensure consistency
+      for (let i = 0; i < 3; i++) {
+        mockWindow.open(expectedUrl, '_blank')
+      }
+
+      // Verify all URLs are the same
+      if (mockWindow.openedUrls.length !== 3) {
+        throw new Error(`Expected 3 URLs to be opened, got ${mockWindow.openedUrls.length}`)
+      }
+
+      for (const openedUrl of mockWindow.openedUrls) {
+        if (openedUrl.url !== expectedUrl) {
+          throw new Error(`All URLs should be ${expectedUrl}, got ${openedUrl.url}`)
         }
       }
-      
+
       return 'PASS'
     }
   },
@@ -192,11 +180,11 @@ const tests = [
           <span style="font-weight: 600; font-size: 16px;">Enjoying the extension?</span>
         </div>
         <div style="margin-bottom: 16px; font-size: 14px; line-height: 1.4; opacity: 0.95;">
-          Help others discover this extension by leaving a review, or share your feedback directly with me to help improve the experience!
+          Help others discover this extension by leaving a review, or contact me on Reddit to share feedback and suggestions!
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button id="review-now-btn">⭐ Review on Store</button>
-          <button id="send-feedback-btn">📧 Send Feedback</button>
+          <button id="send-feedback-btn">💬 Contact on Reddit</button>
           <button id="maybe-later-btn">Maybe Later</button>
         </div>
       `
@@ -215,13 +203,13 @@ const tests = [
       }
       
       // Verify the feedback button has the correct text and emoji
-      if (!reviewPrompt.innerHTML.includes('📧 Send Feedback')) {
+      if (!reviewPrompt.innerHTML.includes('💬 Contact on Reddit')) {
         throw new Error('Feedback button should have correct text and emoji')
       }
-      
+
       // Verify the updated description text
-      if (!reviewPrompt.innerHTML.includes('share your feedback directly with me')) {
-        throw new Error('Review prompt should mention feedback option in description')
+      if (!reviewPrompt.innerHTML.includes('contact me on Reddit to share feedback and suggestions')) {
+        throw new Error('Review prompt should mention Reddit contact option in description')
       }
       
       return 'PASS'

@@ -76,17 +76,13 @@ async function createReviewPrompt(): Promise<HTMLElement> {
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
   `
 
-  // Get current event count for feedback email
-  const result = await Browser.storage.local.get(['successfulEvents'])
-  const count = result.successfulEvents || 0
-
   reviewPrompt.innerHTML = `
     <div style="display: flex; align-items: center; margin-bottom: 12px;">
       <span style="font-size: 20px; margin-right: 8px;">⭐</span>
       <span style="font-weight: 600; font-size: 16px;">Enjoying the extension?</span>
     </div>
     <div style="margin-bottom: 16px; font-size: 14px; line-height: 1.4; opacity: 0.95;">
-      Help others discover this extension by leaving a review, or share your feedback directly with me to help improve the experience!
+      Help others discover this extension by leaving a review, or contact me on Reddit to share feedback and suggestions!
     </div>
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
       <button id="review-now-btn" style="
@@ -110,7 +106,7 @@ async function createReviewPrompt(): Promise<HTMLElement> {
         font-weight: 500 !important;
         font-size: 14px !important;
         transition: all 0.2s ease !important;
-      ">📧 Send Feedback</button>
+      ">� Contact on Reddit</button>
       <button id="maybe-later-btn" style="
         background: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -156,9 +152,7 @@ async function createReviewPrompt(): Promise<HTMLElement> {
     })
     sendFeedbackBtn.addEventListener('click', () => {
       logger.info('content-script', 'User clicked Send Feedback')
-      const subject = encodeURIComponent('ChatGPT for Google Calendar - User Feedback')
-      const body = encodeURIComponent(`Hi!\n\nI've been using your ChatGPT for Google Calendar extension and wanted to share some feedback:\n\n[Please share your thoughts, suggestions, or any issues you've encountered]\n\nWhat I'd love to see:\n- [Any feature requests]\n\nMy usage: Created ${count} events so far\n\nThanks for creating this useful tool!\n\nBest regards`)
-      window.open(`mailto:wihoho@gmail.com?subject=${subject}&body=${body}`, '_blank')
+      window.open('https://www.reddit.com/user/Loose_Ad_6677/', '_blank')
     })
   }
 
