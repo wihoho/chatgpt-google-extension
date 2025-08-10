@@ -63,7 +63,7 @@ async function markReviewPromptDismissed(): Promise<void> {
   }
 }
 
-function createReviewPrompt(): HTMLElement {
+async function createReviewPrompt(): Promise<HTMLElement> {
   const reviewPrompt = document.createElement('div')
   reviewPrompt.style.cssText = `
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
@@ -76,15 +76,19 @@ function createReviewPrompt(): HTMLElement {
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
   `
 
+  // Get current event count for feedback email
+  const result = await Browser.storage.local.get(['successfulEvents'])
+  const count = result.successfulEvents || 0
+
   reviewPrompt.innerHTML = `
     <div style="display: flex; align-items: center; margin-bottom: 12px;">
       <span style="font-size: 20px; margin-right: 8px;">⭐</span>
       <span style="font-weight: 600; font-size: 16px;">Enjoying the extension?</span>
     </div>
     <div style="margin-bottom: 16px; font-size: 14px; line-height: 1.4; opacity: 0.95;">
-      Help others discover this extension by leaving a review on the Chrome Web Store!
+      Help others discover this extension by leaving a review, or share your feedback directly with me to help improve the experience!
     </div>
-    <div style="display: flex; gap: 12px;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
       <button id="review-now-btn" style="
         background: rgba(255, 255, 255, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -95,7 +99,18 @@ function createReviewPrompt(): HTMLElement {
         font-weight: 500 !important;
         font-size: 14px !important;
         transition: all 0.2s ease !important;
-      ">⭐ Review Now</button>
+      ">⭐ Review on Store</button>
+      <button id="send-feedback-btn" style="
+        background: rgba(255, 255, 255, 0.2) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: white !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+      ">📧 Send Feedback</button>
       <button id="maybe-later-btn" style="
         background: transparent !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -109,8 +124,9 @@ function createReviewPrompt(): HTMLElement {
     </div>
   `
 
-  // Add hover effects
+  // Add hover effects and event listeners
   const reviewNowBtn = reviewPrompt.querySelector('#review-now-btn') as HTMLElement
+  const sendFeedbackBtn = reviewPrompt.querySelector('#send-feedback-btn') as HTMLElement
   const maybeLaterBtn = reviewPrompt.querySelector('#maybe-later-btn') as HTMLElement
 
   if (reviewNowBtn) {
@@ -126,6 +142,23 @@ function createReviewPrompt(): HTMLElement {
       logger.info('content-script', 'User clicked Review Now')
       await markReviewPromptDismissed()
       window.open(CHROME_WEB_STORE_REVIEW_URL, '_blank')
+    })
+  }
+
+  if (sendFeedbackBtn) {
+    sendFeedbackBtn.addEventListener('mouseenter', () => {
+      sendFeedbackBtn.style.background = 'rgba(255, 255, 255, 0.3) !important'
+      sendFeedbackBtn.style.transform = 'translateY(-1px)'
+    })
+    sendFeedbackBtn.addEventListener('mouseleave', () => {
+      sendFeedbackBtn.style.background = 'rgba(255, 255, 255, 0.2) !important'
+      sendFeedbackBtn.style.transform = 'translateY(0)'
+    })
+    sendFeedbackBtn.addEventListener('click', () => {
+      logger.info('content-script', 'User clicked Send Feedback')
+      const subject = encodeURIComponent('ChatGPT for Google Calendar - User Feedback')
+      const body = encodeURIComponent(`Hi!\n\nI've been using your ChatGPT for Google Calendar extension and wanted to share some feedback:\n\n[Please share your thoughts, suggestions, or any issues you've encountered]\n\nWhat I'd love to see:\n- [Any feature requests]\n\nMy usage: Created ${count} events so far\n\nThanks for creating this useful tool!\n\nBest regards`)
+      window.open(`mailto:wihoho@gmail.com?subject=${subject}&body=${body}`, '_blank')
     })
   }
 
@@ -811,9 +844,9 @@ function showEventConfirmation(eventData: any) {
   confirmationContent.appendChild(formFields)
 
   // Check if we should show review prompt
-  shouldShowReviewPrompt().then(shouldShow => {
+  shouldShowReviewPrompt().then(async shouldShow => {
     if (shouldShow) {
-      const reviewPrompt = createReviewPrompt()
+      const reviewPrompt = await createReviewPrompt()
       confirmationContent.insertBefore(reviewPrompt, confirmationContent.lastElementChild || null)
     }
   }).catch(error => {

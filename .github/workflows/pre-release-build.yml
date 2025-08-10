@@ -8,11 +8,12 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
+          cache: 'npm'
+      - run: npm ci
       - run: npm run build
 
       - uses: josStorer/get-current-time@v2.0.2
@@ -20,12 +21,14 @@ jobs:
         with:
           format: YY_MMDD_HH_mm
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Chromium_ChatGPT_Extension_Build_${{ steps.current-time.outputs.formattedTime }}
           path: build/chromium/*
+          retention-days: 30
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Firefox_ChatGPT_Extension_Build_${{ steps.current-time.outputs.formattedTime }}
           path: build/firefox/*
+          retention-days: 30
