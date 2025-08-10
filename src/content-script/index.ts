@@ -19,7 +19,7 @@ const LOADING_INDICATOR_ID = 'extension-loading-indicator'
 const ERROR_MODAL_ID = 'extension-error-modal'
 
 // Review prompt constants
-const REVIEW_PROMPT_INTERVAL = 3
+const REVIEW_PROMPT_INTERVAL = 2
 const CHROME_WEB_STORE_REVIEW_URL = 'https://chromewebstore.google.com/detail/chatgpt-for-google-calend/laejdmahdkleahgkdpiapfdcmleedhca?hl=en'
 
 let currentEventData: any = null

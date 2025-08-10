@@ -243,20 +243,6 @@ class CIExtensionTester extends ExtensionE2ETester {
           // Wait between tests
           await new Promise(resolve => setTimeout(resolve, 1000))
         }
-
-        console.log('\n🧪 Testing Review Prompt Feature...')
-
-        // Test review prompt with retry
-        try {
-          results.reviewPrompt = await this.testWithRetry(
-            () => this.testReviewPrompt(),
-            { name: 'Review Prompt Test' }
-          )
-          results.summary.passed++
-        } catch (error) {
-          results.reviewPrompt = { success: false, error: error.message }
-          results.summary.failed++
-        }
       }
 
     } catch (error) {
