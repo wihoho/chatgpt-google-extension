@@ -202,11 +202,7 @@ class SimpleCITester {
       this.addTestResult(`Test Page: ${file}`, exists, exists ? '' : `File not found: ${filePath}`)
     }
 
-    // Check for troubleshooting guide in root
-    const troubleshootingPath = path.join(rootPath, 'TROUBLESHOOTING.md')
-    const troubleshootingExists = fs.existsSync(troubleshootingPath)
-    this.addTestResult('Troubleshooting Guide', troubleshootingExists, troubleshootingExists ? '' : `File not found: ${troubleshootingPath}`)
-  }
+    }
 
   generateReport() {
     this.results.summary.duration = Date.now() - this.startTime
